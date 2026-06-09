@@ -42,7 +42,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className={myeongjo.variable}>
       <body className="min-h-dvh antialiased">
-        {children}
+        {/*
+          모바일 퍼스트 프레임.
+          - max-w-[480px] mx-auto: 데스크탑에서도 모바일 폭으로 중앙 정렬
+          - transform-gpu: 자식의 position:fixed가 이 컨테이너를 기준으로 동작 (CSS containing block)
+            → 시트/모달이 480px 컨테이너 안에만 갇힘
+          - relative + overflow-hidden: sticky/absolute 자식이 컨테이너 경계를 벗어나지 않음
+          - sm:rounded-2xl: 데스크탑에서 모서리 둥글게 (모바일에선 0)
+        */}
+        <div
+          className="relative mx-auto w-full max-w-[480px] min-h-dvh overflow-hidden bg-[#15102a] transform-gpu sm:my-4 sm:rounded-[36px] sm:shadow-[0_0_60px_rgba(0,0,0,0.5)]"
+          style={{ contain: "paint" }}
+        >
+          {children}
+        </div>
         <Toaster theme="dark" position="top-center" />
       </body>
     </html>

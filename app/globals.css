@@ -1,33 +1,37 @@
 @import "tailwindcss";
 
+/* === ziwei-app 디자인 토큰 (theme/tokens.ts의 CSS 미러) === */
 @theme {
-  /* 자색 (메인 배경) */
-  --color-purple-deep: #15102a;
-  --color-purple-soft: #241a3d;
-  --color-purple-mid: #2c2150;
-  --color-purple-light: #3a2d60;
-  --color-violet: #5e47a0;
-  --color-lavender: #b7a4e0;
+  /* Z palette */
+  --color-p900: #241a3d;
+  --color-p850: #2c2150;
+  --color-p800: #372a60;
+  --color-p700: #4c3a7c;
+  --color-p600: #5e47a0;
+  --color-p500: #7c5dc7;
+  --color-p300: #b7a4e0;
+  --color-p100: #ede7f8;
+  --color-p50: #f7f4fc;
 
-  /* 금색 (강조) */
-  --color-gold: #e3c36b;
-  --color-gold-soft: #c9a948;
-  --color-gold-light: #f0d98a;
+  --color-gold: #c7a23f;
+  --color-gold-bright: #e3c36b;
+  --color-gold-soft: #f0e3be;
 
-  /* 텍스트 */
+  --color-ink: #231b33;
+  --color-ink2: #6b6378;
+  --color-ink3: #9b94a8;
+
+  --color-line: #ece7f2;
+  --color-cream: #fbf8f3;
+  --color-kakao: #fee500;
+
+  /* legacy 호환 */
   --color-foreground: #fbf8f3;
-  --color-muted: #a89dba;
-
-  /* 경고/포인트 */
+  --color-muted: #6b6378;
   --color-rose: #ff8a80;
 
   --font-display: "Nanum Myeongjo", "Noto Serif KR", ui-serif, serif;
-  --font-body: -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
-
-  --radius-card: 0.75rem;
-
-  /* 프로토타입의 시그니처 radial — 원형 명반의 안쪽 빛 */
-  --bg-zamidusu: radial-gradient(ellipse 80% 60% at 50% 35%, #5e47a0 0%, #241a3d 55%, #15102a 100%);
+  --font-body: "Pretendard", -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -35,70 +39,77 @@
 }
 
 * {
+  box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 html, body {
-  background: #15102a;
-  color: var(--color-foreground);
+  margin: 0;
+  height: 100%;
   font-family: var(--font-body);
+  color: var(--color-ink);
+}
+
+body {
+  /* ziwei-app 시그니처 멀티 radial */
+  background:
+    radial-gradient(circle at 18% 12%, #2c2150 0%, transparent 42%),
+    radial-gradient(circle at 86% 88%, #3a2d60 0%, transparent 45%),
+    #15102a;
   min-height: 100vh;
   min-height: 100dvh;
 }
 
-body {
-  background: var(--bg-zamidusu);
-  background-attachment: fixed;
+/* === 화면 진입 애니메이션 === */
+@keyframes scrIn {
+  from { transform: translateX(14px); opacity: 0.6; }
+  to   { transform: none; opacity: 1; }
+}
+@keyframes sheetUp {
+  from { transform: translateY(26px); opacity: 0.6; }
+  to   { transform: none; opacity: 1; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes glow {
+  0%, 100% {
+    box-shadow:
+      0 0 40px rgba(199, 162, 63, 0.25),
+      0 0 0 1px rgba(227, 195, 107, 0.4);
+  }
+  50% {
+    box-shadow:
+      0 0 66px rgba(199, 162, 63, 0.5),
+      0 0 0 1px rgba(227, 195, 107, 0.65);
+  }
 }
 
-.font-display {
-  font-family: var(--font-display);
+.animscr {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  animation: scrIn 0.28s cubic-bezier(0.22, 0.7, 0.3, 1);
 }
+.animscr > * { flex: 1 0 auto; }
 
-/* 명반 차트용 보조 클래스 */
-.palace-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(227, 195, 107, 0.06) 100%);
-  border: 1px solid rgba(227, 195, 107, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
+/* 모바일 스크롤바 숨김 (이전 .phonewrap 대체) */
+.no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+.no-scrollbar { scrollbar-width: none; }
 
-.palace-card:hover {
-  border-color: rgba(227, 195, 107, 0.5);
-}
-
-.gold-text {
-  color: var(--color-gold);
-}
-
-.gold-border {
-  border-color: var(--color-gold);
-}
-
-/* 프로토타입 SVG의 금색 글로우 */
-.gold-glow {
-  filter: drop-shadow(0 0 12px rgba(227, 195, 107, 0.35));
+@media (prefers-reduced-motion: reduce) {
+  .animscr { animation: none; }
 }
 
 /* 모바일 안전 영역 */
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.safe-top {
-  padding-top: env(safe-area-inset-top);
-}
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top { padding-top: env(safe-area-inset-top); }
+
+/* 보조 유틸 */
+.gold-text { color: var(--color-gold-bright); }
 
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
-  a {
-    color: inherit;
-    text-decoration: none;
-  }
-  /* 모바일 입력 폼 줌인 방지 (iOS) */
-  input, select, textarea {
-    font-size: 16px;
-  }
+  a { color: inherit; text-decoration: none; }
+  input, select, textarea { font-size: 16px; }
 }
