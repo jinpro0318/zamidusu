@@ -1,13 +1,15 @@
 // Prisma schema — Zamidusu MVP
-// 개발: SQLite (file:./dev.db)
-// 프로덕션: Neon Postgres (DATABASE_URL 환경변수만 교체, provider는 postgresql로 전환)
+// 개발/프로덕션 공통: Postgres (Supabase 또는 Neon).
+// Vercel serverless는 SQLite 파일 쓰기를 못 하므로 Postgres 필수.
+//
+// DATABASE_URL 예: postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
