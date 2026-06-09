@@ -21,6 +21,12 @@
   /* 경고/포인트 */
   --color-rose: #ff8a80;
 
+  /* 사화(四化) 색상 — 길흉을 한눈에 */
+  --color-lu: #6ee7a8;    /* 화록 (祿) — 재복·기회 */
+  --color-quan: #6cb6ff;  /* 화권 (權) — 권력·성취 */
+  --color-ke: #c4a8ff;    /* 화과 (科) — 명예·학문 */
+  --color-ji: #ff7a8a;    /* 화기 (忌) — 갈등·근심 */
+
   --font-display: "Nanum Myeongjo", "Noto Serif KR", ui-serif, serif;
   --font-body: -apple-system, BlinkMacSystemFont, ui-sans-serif, system-ui, sans-serif;
 
@@ -62,10 +68,40 @@ body {
   border: 1px solid rgba(227, 195, 107, 0.2);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .palace-card:hover {
   border-color: rgba(227, 195, 107, 0.5);
+}
+
+.palace-card-soul {
+  background: linear-gradient(135deg, rgba(227, 195, 107, 0.18) 0%, rgba(94, 71, 160, 0.18) 100%);
+  border: 1px solid rgba(227, 195, 107, 0.45);
+  box-shadow: 0 0 24px rgba(227, 195, 107, 0.12);
+}
+
+.palace-card-body {
+  border-color: rgba(183, 164, 224, 0.4);
+}
+
+/* 사화 텍스트/배경 유틸 */
+.mut-lu { color: var(--color-lu); }
+.mut-quan { color: var(--color-quan); }
+.mut-ke { color: var(--color-ke); }
+.mut-ji { color: var(--color-ji); }
+
+.mut-bg-lu { background: color-mix(in oklab, var(--color-lu) 18%, transparent); border-color: color-mix(in oklab, var(--color-lu) 40%, transparent); color: var(--color-lu); }
+.mut-bg-quan { background: color-mix(in oklab, var(--color-quan) 18%, transparent); border-color: color-mix(in oklab, var(--color-quan) 40%, transparent); color: var(--color-quan); }
+.mut-bg-ke { background: color-mix(in oklab, var(--color-ke) 18%, transparent); border-color: color-mix(in oklab, var(--color-ke) 40%, transparent); color: var(--color-ke); }
+.mut-bg-ji { background: color-mix(in oklab, var(--color-ji) 18%, transparent); border-color: color-mix(in oklab, var(--color-ji) 40%, transparent); color: var(--color-ji); }
+
+/* 미세한 점선 구분 */
+.divider-dotted {
+  background-image: linear-gradient(to right, rgba(227, 195, 107, 0.25) 50%, transparent 50%);
+  background-size: 8px 1px;
+  background-repeat: repeat-x;
+  height: 1px;
 }
 
 .gold-text {
