@@ -3,11 +3,10 @@
 import { useState } from "react";
 import type { AstrolabePayload, PalaceLite } from "@/lib/iztro/types";
 import { PalaceCard } from "./PalaceCard";
-import { PalaceDetail } from "./PalaceDetail";
 
-// 4×4 그리드. 중앙 2×2는 천반(天盤) 요약.
+// 자미두수 명반은 전통적으로 4x4 그리드 (12궁 + 중앙 2x2 천반).
 //   [巳] [午] [未] [申]
-//   [辰] [   天盤    ] [酉]
+//   [辰] [   천반    ] [酉]
 //   [卯] [           ] [戌]
 //   [寅] [丑] [子] [亥]
 
@@ -27,20 +26,30 @@ export function ChartGrid({ payload }: { payload: AstrolabePayload }) {
   const active = activeIdx !== null ? payload.palaces[activeIdx] : null;
 
   return (
-    <section className="space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-xs gold-text tracking-wider">
-          <span className="size-1.5 rounded-full bg-gold inline-block" />
-          十二宮 · TWELVE PALACES
-        </div>
-        <p className="text-[10px] text-muted">탭하면 펼쳐져요</p>
-      </div>
-
+    <div className="space-y-4 sm:space-y-6">
       <div className="grid grid-cols-4 gap-1 sm:gap-2.5">
         {GRID_LAYOUT.map((branch, gridIdx) => {
           if (branch === null) {
             if (gridIdx === 5) {
-              return <CenterPlate key={gridIdx} payload={payload} />;
+              return (
+                <div
+                  key={gridIdx}
+                  className="col-span-2 row-span-2 palace-card flex flex-col items-center justify-center rounded-md sm:rounded-lg p-3 sm:p-5 text-center"
+                >
+                  <p className="text-[10px] sm:text-xs text-muted">命主 · 身主</p>
+                  <p className="font-display text-base sm:text-2xl font-bold gold-text mt-1 sm:mt-2">
+                    {payload.soul} / {payload.body}
+                  </p>
+                  <p className="mt-2 sm:mt-3 text-[10px] sm:text-xs text-muted">五行局</p>
+                  <p className="font-display text-sm sm:text-lg gold-text">{payload.fiveElementsClass}</p>
+                  <p className="mt-2 sm:mt-3 text-[9px] sm:text-xs text-muted leading-tight">
+                    {payload.solarDate}
+                    <br className="sm:hidden" />
+                    <span className="hidden sm:inline"> · </span>
+                    {payload.time}
+                  </p>
+                </div>
+              );
             }
             return null;
           }
@@ -66,31 +75,52 @@ export function ChartGrid({ payload }: { payload: AstrolabePayload }) {
         })}
       </div>
 
-      {active && <PalaceDetail palace={active} />}
-    </section>
-  );
-}
-
-function CenterPlate({ payload }: { payload: AstrolabePayload }) {
-  return (
-    <div className="col-span-2 row-span-2 palace-card flex flex-col items-center justify-center rounded-md sm:rounded-lg p-3 sm:p-5 text-center">
-      <p className="font-display gold-text text-base sm:text-lg tracking-wider">天盤</p>
-      <p className="text-[10px] text-muted/80 mt-0.5">기본 정보</p>
-
-      <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-x-3 gap-y-1.5 text-left">
-        <span className="text-[10px] text-muted">命主</span>
-        <span className="font-display text-xs gold-text">{payload.soul}</span>
-        <span className="text-[10px] text-muted">身主</span>
-        <span className="font-display text-xs gold-text">{payload.body}</span>
-        <span className="text-[10px] text-muted">五行局</span>
-        <span className="font-display text-xs gold-text">{payload.fiveElementsClass}</span>
-      </div>
-
-      <div className="mt-3 text-[9px] sm:text-[10px] text-muted/70 leading-tight">
-        {payload.solarDate}
-        <br />
-        {payload.time}
-      </div>
+      {active && (
+        <div className="palace-card rounded-xl p-4 sm:p-6">
+          <h3 className="font-display text-xl sm:text-2xl font-bold gold-text">
+            {active.name}{" "}
+            <span className="text-base sm:text-lg text-foreground/70 font-normal">
+              {active.heavenlyStem}
+              {active.earthlyBranch}
+            </span>
+          </h3>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs text-muted mb-2 tracking-wider">주성(主星)</p>
+              <div className="flex flex-wrap gap-1">
+                {active.majorStars.length === 0 && (
+                  <span className="text-muted text-sm">공궁(空宮)</span>
+                )}
+                {active.majorStars.map((s, i) => (
+                  <span
+                    key={i}
+                    className="rounded bg-gold/10 border border-gold/30 px-2 py-1 text-xs gold-text font-medium"
+                  >
+                    {s.name}
+                    {s.brightness ? ` (${s.brightness})` : ""}
+                    {s.mutagen ? ` · ${s.mutagen}` : ""}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted mb-2 tracking-wider">잡성·소성</p>
+              <div className="flex flex-wrap gap-1">
+                {[...active.minorStars, ...active.adjectiveStars].slice(0, 12).map((s, i) => (
+                  <span key={i} className="rounded border border-white/15 px-2 py-1 text-xs">
+                    {s.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          {active.decadal?.range && (
+            <p className="mt-4 text-sm text-muted">
+              대운: <span className="gold-text">{active.decadal.range[0]} - {active.decadal.range[1]}세</span>
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
