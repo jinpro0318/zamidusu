@@ -1,0 +1,186 @@
+// Prisma schema — Zamidusu MVP
+// 개발: SQLite (file:./dev.db)
+// 프로덕션: Neon Postgres (DATABASE_URL 환경변수만 교체, provider는 postgresql로 전환)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Auth (NextAuth v5 표준 모델)
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+
+  accounts        Account[]
+  sessions        Session[]
+  charts          Chart[]
+  subscriptions   Subscription[]
+  payments        Payment[]
+  conversations   AiConversation[]
+  compatibilities Compatibility[]  @relation("CompatibilityOwner")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// Domain
+// ============================================================
+
+model Chart {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 본명/별칭
+  subjectName String?
+  gender      String  // "MALE" | "FEMALE"
+
+  // 출생 정보 (검색·재계산용 분해 저장)
+  birthCalendar String  // "SOLAR" | "LUNAR"
+  birthYear     Int
+  birthMonth    Int
+  birthDay      Int
+  birthHour     Int     // 0-23
+  birthMinute   Int     @default(0)
+  isLeapMonth   Boolean @default(false)
+  timezone      String  @default("Asia/Seoul")
+
+  // iztro 산출물 (JSON 직렬화 — SQLite는 String, Postgres는 Json으로 마이그레이션 가능)
+  payload      String
+  iztroVersion String
+
+  // 공유
+  shareToken    String? @unique
+  shareEnabled  Boolean @default(false)
+
+  // 프리미엄 게이팅
+  isPremiumUnlocked Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  conversations    AiConversation[]
+  compatibilitiesA Compatibility[]  @relation("CompatibilityA")
+  compatibilitiesB Compatibility[]  @relation("CompatibilityB")
+
+  @@index([userId, createdAt])
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan             String   // "FREE" | "PREMIUM" | "PRO"
+  status           String   // "ACTIVE" | "CANCELED" | "PAST_DUE" | "TRIALING"
+  tossBillingKey   String?
+  currentPeriodEnd DateTime?
+  canceledAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Payment {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  orderId    String  @unique
+  paymentKey String? @unique
+  amount     Int
+  currency   String  @default("KRW")
+  status     String  // "READY" | "DONE" | "CANCELED" | "FAILED" | "PARTIAL_CANCELED"
+
+  productType String  // "PREMIUM_INTERPRETATION" | "SUBSCRIPTION" | "COMPATIBILITY"
+  productRef  String?
+  rawResponse String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model AiConversation {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  chartId String
+  chart   Chart  @relation(fields: [chartId], references: [id], onDelete: Cascade)
+
+  messages   String  // JSON: [{role, content, createdAt}, ...]
+  model      String
+  tokenUsage Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, chartId])
+}
+
+model Compatibility {
+  id      String @id @default(cuid())
+  ownerId String
+  owner   User   @relation("CompatibilityOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  chartAId String
+  chartA   Chart  @relation("CompatibilityA", fields: [chartAId], references: [id])
+  chartBId String
+  chartB   Chart  @relation("CompatibilityB", fields: [chartBId], references: [id])
+
+  score  Int
+  detail String  // JSON
+
+  createdAt DateTime @default(now())
+
+  @@unique([chartAId, chartBId])
+  @@index([ownerId])
+}
