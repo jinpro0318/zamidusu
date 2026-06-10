@@ -1,9 +1,10 @@
 'use client';
 
-// screens/Result.tsx — 12 life-areas overview (home)
+// screens/Result.tsx — 메인 결과 화면 (명반 차트 + 12영역 통합 스크롤 페이지)
 import { useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField, Seg } from '@/components/ziwei/atoms';
+import { Plate } from '@/components/ziwei/Plate';
 import { TabBar } from '@/components/ziwei/common';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { Toast } from '@/components/ziwei/sheets/Toast';
@@ -24,15 +25,27 @@ export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: Result
   const [showAll, setShowAll] = useState(false);
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
+  const [plateSel, setPlateSel] = useState('命宮');
+  const [plateMode, setPlateMode] = useState<'쉬운 보기' | '전통 보기'>('쉬운 보기');
+
   const sixKeys = ['命宮', '夫妻宮', '財帛宮', '官祿宮', '疾厄宮', '田宅宮'];
   const list = showAll
     ? allAreas
     : allAreas.filter((a) => sixKeys.includes(a.cn)).sort((a, b) => sixKeys.indexOf(a.cn) - sixKeys.indexOf(b.cn));
   const soul = allAreas.find((a) => a.cn === '命宮') ?? allAreas[0];
+  const plateCur = allAreas.find((a) => a.cn === plateSel) ?? soul;
 
   return (
     <div style={{ minHeight: '100%', background: Z.cream, display: 'flex', flexDirection: 'column' }}>
-      {/* hero */}
+      {/* 스크롤 안내 화살표 애니메이션 — 한 번만 정의 */}
+      <style>{`
+        @keyframes zmds-scroll-hint {
+          0%, 100% { transform: translateY(0); opacity: 0.85; }
+          50% { transform: translateY(6px); opacity: 1; }
+        }
+      `}</style>
+
+      {/* ── HERO ────────────────────────────────────────────────── */}
       <div
         style={{
           position: 'relative',
@@ -129,37 +142,134 @@ export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: Result
         </div>
       </div>
 
-      <div style={{ padding: '18px 18px 26px', flex: 1 }}>
-        <Seg
-          options={['12 영역', '명반 차트']}
-          value={'12 영역'}
-          onChange={(v) => {
-            if (v === '명반 차트') nav.tab('chart');
+      {!loggedIn && (
+        <div
+          style={{
+            margin: '14px 18px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 9,
+            background: Z.p50,
+            border: `1px solid ${Z.p100}`,
+            borderRadius: 12,
+            padding: '10px 12px',
           }}
-        />
-        {!loggedIn && (
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M7 10V7a5 5 0 019.6-2" stroke={Z.p600} strokeWidth="2" strokeLinecap="round" />
+            <rect x="4" y="10" width="16" height="10" rx="2.5" stroke={Z.p600} strokeWidth="2" />
+          </svg>
+          <span style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, lineHeight: 1.4 }}>
+            로그인 없이 보는 중 · <b style={{ color: Z.ink }}>명반·12영역은 모두 무료</b>, 저장·공유·심층풀이는 가입 후
+          </span>
+        </div>
+      )}
+
+      {/* ── 명반 차트 카드 (메인) ──────────────────────────────────── */}
+      <div style={{ padding: '18px 18px 0' }}>
+        <div
+          id="plate"
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            background: `linear-gradient(175deg, ${Z.p900}, ${Z.p850})`,
+            borderRadius: 22,
+            padding: '18px 14px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            boxShadow: '0 10px 28px rgba(36,26,61,0.18)',
+          }}
+        >
+          <StarField count={22} gold={3} seed={3} />
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 700, color: '#fff' }}>
+              명반 차트 <span style={{ color: Z.goldBright }}>命盤</span>
+            </div>
+            <div style={{ fontFamily: SANS, fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{birthLabel ?? ''}</div>
+          </div>
+          <div style={{ position: 'relative' }}>
+            <Seg
+              options={['쉬운 보기', '전통 보기']}
+              value={plateMode}
+              onChange={(v) => setPlateMode(v as '쉬운 보기' | '전통 보기')}
+              dark
+            />
+          </div>
+          <div style={{ position: 'relative' }}>
+            <Plate selKey={plateSel} onSel={setPlateSel} easy={plateMode === '쉬운 보기'} areas={allAreas} />
+          </div>
           <div
             style={{
+              position: 'relative',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(227,195,107,0.25)',
+              borderRadius: 14,
+              padding: 12,
               display: 'flex',
+              gap: 12,
               alignItems: 'center',
-              gap: 9,
-              marginTop: 12,
-              background: Z.p50,
-              border: `1px solid ${Z.p100}`,
-              borderRadius: 12,
-              padding: '10px 12px',
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-              <path d="M7 10V7a5 5 0 019.6-2" stroke={Z.p600} strokeWidth="2" strokeLinecap="round" />
-              <rect x="4" y="10" width="16" height="10" rx="2.5" stroke={Z.p600} strokeWidth="2" />
-            </svg>
-            <span style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, lineHeight: 1.4 }}>
-              로그인 없이 보는 중 · <b style={{ color: Z.ink }}>명반·12영역은 모두 무료</b>, 저장·공유·심층풀이는 가입 후
-            </span>
+            <AreaIcon h={plateCur.h} size={42} sel />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontFamily: SANS, fontSize: 14.5, fontWeight: 700, color: '#fff' }}>{plateCur.ko}</span>
+                <span style={{ fontFamily: SERIF, fontSize: 12.5, color: Z.p300 }}>{plateCur.cn}</span>
+                <Brightness b={plateCur.br} />
+              </div>
+              <div style={{ fontFamily: SERIF, fontSize: 12.5, color: Z.goldBright, margin: '3px 0' }}>{plateCur.stars.join(' · ')}</div>
+              <div style={{ fontFamily: SANS, fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>{plateCur.line}</div>
+            </div>
           </div>
-        )}
-        <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '14px 4px 12px' }}>
+          <button
+            onClick={() => nav.go('detail', { key: plateSel })}
+            style={{
+              position: 'relative',
+              width: '100%',
+              cursor: 'pointer',
+              border: 'none',
+              borderRadius: 14,
+              padding: '13px',
+              fontFamily: SANS,
+              fontSize: 15,
+              fontWeight: 700,
+              color: Z.ink,
+              background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
+              boxShadow: '0 6px 18px rgba(199,162,63,0.32)',
+            }}
+          >
+            이 자리 자세히 보기 →
+          </button>
+          <div style={{ position: 'relative', textAlign: 'center', fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>
+            각 궁을 눌러 선택 · 두 번 눌러 상세
+          </div>
+        </div>
+      </div>
+
+      {/* ── 스크롤 안내 ─────────────────────────────────────────── */}
+      <div
+        aria-hidden
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 4,
+          padding: '18px 18px 6px',
+          animation: 'zmds-scroll-hint 1.6s ease-in-out infinite',
+        }}
+      >
+        <span style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink3, fontWeight: 600 }}>
+          아래로 스크롤하여 12 영역 보기
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M6 9l6 6 6-6" stroke={Z.p600} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+
+      {/* ── 12 영역 리스트 ─────────────────────────────────────── */}
+      <div style={{ padding: '8px 18px 26px', flex: 1 }}>
+        <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '6px 4px 12px' }}>
           12궁을 <b style={{ color: Z.ink }}>내 인생 영역</b>으로 풀었어요 · 눌러서 자세히 보기
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
