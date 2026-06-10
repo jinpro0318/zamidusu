@@ -86,7 +86,20 @@ export function Input({ nav }: { nav: Nav }) {
   }
 
   return (
-    <div style={{ minHeight: '100%', background: Z.cream, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    // 모바일 하단 잘림 방지:
+    //   - minHeight 100vh (fallback) + height 100dvh: 정확히 viewport 높이를 잡아
+    //     내부 flex:1 + overflow-y:auto 가 동작하도록 한다
+    //   - 본문은 내부 스크롤, CTA는 sticky bottom 으로 항상 노출
+    <div
+      style={{
+        background: Z.cream,
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        minHeight: '100vh',
+        height: '100dvh',
+      }}
+    >
       <BackBar nav={nav} />
       <div style={{ padding: '0 22px 6px' }}>
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
@@ -97,7 +110,19 @@ export function Input({ nav }: { nav: Nav }) {
         <h1 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: Z.ink, margin: '0 0 6px' }}>출생정보를 알려주세요</h1>
         <p style={{ fontFamily: SANS, fontSize: 14, color: Z.ink2, margin: '0 0 22px' }}>정확할수록 명반이 정밀해져요</p>
       </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: '0 22px calc(140px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 22 }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+          padding: '0 22px calc(140px + env(safe-area-inset-bottom))',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 22,
+        }}
+      >
         <div>
           <Label req>달력 유형</Label>
           <Seg options={['양력', '음력', '음력(윤달)']} value={cal} onChange={setCal} />
@@ -159,13 +184,15 @@ export function Input({ nav }: { nav: Nav }) {
           <TextInput value={name} onChange={setName} ph="저장할 때 표시할 이름" />
         </div>
       </div>
+      {/* sticky bottom CTA: 본문이 스크롤돼도 항상 노출, iOS 홈인디케이터 safe-area 반영 */}
       <div
         style={{
-          position: 'absolute',
+          position: 'sticky',
+          bottom: 0,
           left: 0,
           right: 0,
-          bottom: 0,
-          padding: '14px 22px max(30px, env(safe-area-inset-bottom))',
+          flexShrink: 0,
+          padding: '14px 22px max(20px, env(safe-area-inset-bottom))',
           background: `linear-gradient(to top, ${Z.cream} 72%, transparent)`,
         }}
       >
