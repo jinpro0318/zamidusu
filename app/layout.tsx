@@ -80,8 +80,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
 
-            {/* 콘텐츠 영역 — 자식들이 minHeight:100% 로 잡히도록 고정 높이 제공 */}
-            <div className="relative flex-1 overflow-y-auto overflow-x-hidden">
+            {/* 콘텐츠 영역 — 자식들이 minHeight:100% 로 잡히도록 고정 높이 제공.
+                no-scrollbar 로 폰 프레임 안쪽 스크롤바는 숨겨 iOS 느낌 유지. */}
+            <div className="no-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
               {children}
             </div>
 

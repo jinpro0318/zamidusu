@@ -98,6 +98,13 @@ body {
 .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
 .no-scrollbar { scrollbar-width: none; }
 
+/* 전역 스크롤바 — 배경 #15102a 와 통일 (Windows/Linux 거터까지 같이 어둠) */
+html { scrollbar-width: thin; scrollbar-color: #15102a #15102a; }
+html::-webkit-scrollbar { width: 8px; height: 8px; }
+html::-webkit-scrollbar-track { background: #15102a; }
+html::-webkit-scrollbar-thumb { background: #15102a; }
+html::-webkit-scrollbar-thumb:hover { background: #2c2150; }
+
 @media (prefers-reduced-motion: reduce) {
   .animscr { animation: none; }
 }
