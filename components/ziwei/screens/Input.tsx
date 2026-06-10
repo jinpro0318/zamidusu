@@ -1,7 +1,7 @@
 'use client';
 
 // screens/Input.tsx — birth info form
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { PrimaryBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput, TapField, PickerSheet } from '@/components/ziwei/common';
@@ -35,14 +35,35 @@ export function Input({ nav }: { nav: Nav }) {
   for (let y = 2012; y >= 1950; y--) YEARS.push(y + '년');
   const MONTHS: string[] = [];
   for (let m = 1; m <= 12; m++) MONTHS.push(m + '월');
-  const DAYS: string[] = [];
-  for (let d = 1; d <= 31; d++) DAYS.push(d + '일');
 
   const [cal, setCal] = useState('양력');
   const [sex, setSex] = useState('');
   const [yy, setYy] = useState('1990년');
   const [mm, setMm] = useState('5월');
   const [dd, setDd] = useState('20일');
+
+  // 선택한 달력·연도·월에 맞춰 일(day) 옵션을 동적으로 산출.
+  //  - 양력: Date 객체로 정확한 말일 계산 (윤년 2월 = 29일)
+  //  - 음력: 클라이언트에 음력 변환 라이브러리가 없어 최대치(30)로 보수 처리.
+  //    그래도 잘못 고른 경우 서버가 한글 메시지로 안내함.
+  const DAYS = useMemo(() => {
+    const yearN = parseInt(yy, 10) || 1990;
+    const monthN = parseInt(mm, 10) || 1;
+    let maxDay: number;
+    if (cal === '양력') {
+      maxDay = new Date(yearN, monthN, 0).getDate();
+    } else {
+      maxDay = 30;
+    }
+    return Array.from({ length: maxDay }, (_, i) => `${i + 1}일`);
+  }, [cal, yy, mm]);
+
+  // 달력/월 변경으로 현재 선택한 일자가 범위를 벗어나면 말일로 보정.
+  useEffect(() => {
+    const ddN = parseInt(dd, 10);
+    const maxDay = DAYS.length;
+    if (ddN > maxDay) setDd(`${maxDay}일`);
+  }, [DAYS, dd]);
   const [time, setTime] = useState('');
   const [name, setName] = useState('');
   const [picker, setPicker] = useState<PickerCfg | null>(null);
@@ -81,7 +102,9 @@ export function Input({ nav }: { nav: Nav }) {
       const data = raw ? safeParseJSON(raw) : null;
 
       if (!res.ok) {
-        const msg = data?.error ?? `명반 생성 실패 (HTTP ${res.status})`;
+        const base = data?.error ?? `명반 생성 실패 (HTTP ${res.status})`;
+        // 서버가 detail을 보냈고 error와 다르면 한 줄 더 보여줘서 사용자가 원인 파악 가능.
+        const msg = data?.detail && data.detail !== data.error ? `${base}\n${data.detail}` : base;
         throw new Error(msg);
       }
       if (!data?.id) {

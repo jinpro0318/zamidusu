@@ -32,6 +32,27 @@ function errorBody(stage: string, err: unknown) {
   };
 }
 
+// iztro / lunar-typescript 가 던지는 영문 에러를 사용자 친화적 한글 메시지로 변환.
+// 대부분은 입력값 자체의 문제이므로 400으로 응답한다.
+function translateIztroError(detail: string, input: { calendar: string; year: number; month: number; day: number; isLeapMonth?: boolean }): string {
+  // 예: "only 29 days in lunar year 2012 month 12"
+  const onlyDays = detail.match(/only (\d+) days in lunar year (\d+) month (\d+)/i);
+  if (onlyDays) {
+    const [, max, , m] = onlyDays;
+    return `음력 ${m}월은 ${max}일까지만 있어요. 일을 다시 선택해 주세요.`;
+  }
+  // 예: "wrong solar year/month/day" 류
+  if (/invalid|wrong|illegal/i.test(detail) && /date|day|month|year/i.test(detail)) {
+    const cal = input.calendar === "LUNAR" ? "음력" : "양력";
+    return `${cal} ${input.year}년 ${input.month}월 ${input.day}일이 올바르지 않아요. 날짜를 다시 확인해 주세요.`;
+  }
+  // 윤달 관련
+  if (/leap/i.test(detail)) {
+    return `선택한 해에는 윤달이 없거나 해당 윤달이 존재하지 않아요. '음력' 또는 다른 달로 변경해 보세요.`;
+  }
+  return "명반 계산에 실패했어요. 입력값을 확인 후 다시 시도해 주세요.";
+}
+
 export async function POST(req: Request) {
   let body: unknown;
   try {
@@ -74,7 +95,12 @@ export async function POST(req: Request) {
       payload = serializeAstrolabe(astrolabe, IZTRO_VERSION);
     } catch (err) {
       console.error("[POST /api/charts] iztro 계산 실패", { input, err });
-      return NextResponse.json(errorBody("astrolabe", err), { status: 500 });
+      const detail = (err as { message?: string })?.message ?? String(err);
+      const friendly = translateIztroError(detail, input);
+      return NextResponse.json(
+        { error: friendly, stage: "astrolabe", detail },
+        { status: 400 },
+      );
     }
 
     const chart = await db.chart.create({
