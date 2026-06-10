@@ -1,6 +1,7 @@
 'use client';
 
 // screens/Result.tsx — 메인 결과 화면 (명반 차트 + 12영역 통합 스크롤 페이지)
+import Link from 'next/link';
 import { useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField, Seg } from '@/components/ziwei/atoms';
@@ -111,19 +112,21 @@ export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: Result
             </button>
           </div>
         </div>
-        <div
-          onClick={() => nav.go('detail', { key: '命宮' })}
+        <Link
+          href={nav.hrefFor('detail', { key: '命宮' })}
+          aria-label={`내 명궁 ${soul.cn} 상세 보기`}
           style={{
             position: 'relative',
             marginTop: 16,
             display: 'flex',
             gap: 13,
             alignItems: 'center',
-            cursor: 'pointer',
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(227,195,107,0.25)',
             borderRadius: 16,
             padding: 13,
+            color: 'inherit',
+            textDecoration: 'none',
           }}
         >
           <AreaIcon h={soul.h} size={50} sel />
@@ -136,10 +139,10 @@ export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: Result
               {soul.line}
             </div>
           </div>
-          <svg width="8" height="14" viewBox="0 0 8 14">
+          <svg width="8" height="14" viewBox="0 0 8 14" aria-hidden>
             <path d="M1 1l6 6-6 6" stroke="rgba(255,255,255,0.6)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </div>
+        </Link>
       </div>
 
       {!loggedIn && (
@@ -274,19 +277,21 @@ export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: Result
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {list.map((a) => (
-            <div
+            <Link
               key={a.cn}
-              onClick={() => nav.go('detail', { key: a.cn })}
+              href={nav.hrefFor('detail', { key: a.cn })}
+              aria-label={`${a.ko} (${a.cn}) 상세 보기`}
               style={{
                 display: 'flex',
                 gap: 13,
                 alignItems: 'center',
-                cursor: 'pointer',
                 background: Z.white,
                 border: `1px solid ${a.sel ? Z.p100 : Z.line}`,
                 borderRadius: 18,
                 padding: '12px 14px',
                 boxShadow: '0 2px 10px rgba(36,26,61,0.04)',
+                color: 'inherit',
+                textDecoration: 'none',
               }}
             >
               <AreaIcon h={a.h} size={44} sel={a.sel} />
@@ -311,10 +316,10 @@ export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: Result
                   {a.line}
                 </div>
               </div>
-              <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }}>
+              <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }} aria-hidden>
                 <path d="M1 1l6 6-6 6" stroke={Z.ink3} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </div>
+            </Link>
           ))}
         </div>
         <button

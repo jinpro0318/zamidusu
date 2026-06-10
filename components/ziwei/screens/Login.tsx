@@ -103,9 +103,22 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
           또는
           <div style={{ flex: 1, height: 1, background: Z.line }} />
         </div>
-        <div onClick={onKakao} style={{ opacity: loading === 'kakao' ? 0.6 : 1 }}>
+        <button
+          type="button"
+          onClick={onKakao}
+          disabled={loading === 'kakao'}
+          aria-label="카카오 계정으로 로그인"
+          aria-busy={loading === 'kakao'}
+          style={{
+            all: 'unset',
+            display: 'block',
+            width: '100%',
+            cursor: loading === 'kakao' ? 'wait' : 'pointer',
+            opacity: loading === 'kakao' ? 0.6 : 1,
+          }}
+        >
           <KakaoBtn />
-        </div>
+        </button>
       </div>
     </div>
   );

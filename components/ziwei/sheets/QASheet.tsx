@@ -83,9 +83,14 @@ export function QASheet({
             <div style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, textAlign: 'center', marginBottom: 10 }}>
               🔒 전체 풀이는 가입 후 바로 열려요 · 3초면 끝
             </div>
-            <div onClick={onUnlock}>
+            <button
+              type="button"
+              onClick={onUnlock}
+              aria-label="카카오로 가입하고 전체 풀이 잠금 해제"
+              style={{ all: 'unset', display: 'block', width: '100%', cursor: 'pointer' }}
+            >
               <KakaoBtn>카카오로 시작하고 전체 풀이 보기</KakaoBtn>
-            </div>
+            </button>
           </div>
         )}
         {loggedIn && (

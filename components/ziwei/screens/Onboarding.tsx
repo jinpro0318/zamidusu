@@ -1,6 +1,7 @@
 'use client';
 
 // screens/Onboarding.tsx — entry screen
+import Link from 'next/link';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { StarField, PrimaryBtn } from '@/components/ziwei/atoms';
 import type { Nav } from '@/lib/ziwei-types';
@@ -93,9 +94,20 @@ export function Onboarding({ nav }: { nav: Nav }) {
           </div>
           <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13.5, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
             이미 회원이신가요?{' '}
-            <span onClick={() => nav.go('login')} style={{ color: Z.goldBright, fontWeight: 600, cursor: 'pointer' }}>
+            <Link
+              href={nav.hrefFor('login')}
+              aria-label="로그인 페이지로 이동"
+              style={{
+                color: Z.goldBright,
+                fontWeight: 600,
+                textDecoration: 'none',
+                outlineOffset: 3,
+                borderRadius: 4,
+                padding: '2px 4px',
+              }}
+            >
               로그인
-            </span>
+            </Link>
           </div>
         </div>
       </div>

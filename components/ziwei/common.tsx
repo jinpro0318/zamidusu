@@ -31,8 +31,9 @@ export function BackBar({ nav, title, dark, right }: { nav: Nav; title?: string;
       }}
     >
       <button
+        type="button"
         onClick={() => nav.back()}
-        aria-label="back"
+        aria-label="이전 화면으로 돌아가기"
         style={{
           border: 'none',
           background: 'transparent',
@@ -105,7 +106,10 @@ export function TabBar({ active, nav }: { active: ScreenKey; nav: Nav }) {
         return (
           <button
             key={it.k}
+            type="button"
             onClick={() => nav.tab(it.k)}
+            aria-label={`${it.label} 탭으로 이동`}
+            aria-current={on ? 'page' : undefined}
             style={{
               flex: 1,
               border: 'none',
@@ -118,7 +122,7 @@ export function TabBar({ active, nav }: { active: ScreenKey; nav: Nav }) {
               gap: 3,
             }}
           >
-            <svg width="23" height="23" viewBox="0 0 24 24">
+            <svg width="23" height="23" viewBox="0 0 24 24" aria-hidden>
               {it.icon(c)}
             </svg>
             <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: on ? 700 : 500, color: c }}>{it.label}</span>

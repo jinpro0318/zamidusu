@@ -68,9 +68,14 @@ export function LoginGate({ gate, onClose, onLogin }: { gate: GateState | null; 
           <br />
           <b style={{ color: Z.ink }}>지금까지 본 명반은 그대로 저장</b>돼요.
         </div>
-        <div onClick={onLogin}>
+        <button
+          type="button"
+          onClick={onLogin}
+          aria-label="카카오로 로그인 시작"
+          style={{ all: 'unset', display: 'block', width: '100%', cursor: 'pointer' }}
+        >
           <KakaoBtn>카카오로 시작하기</KakaoBtn>
-        </div>
+        </button>
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           {['Google', 'Apple', '이메일'].map((m) => (
             <button

@@ -25,9 +25,12 @@ export function Plate({
   const cell = (a: Area) => {
     const sel = a.cn === selKey;
     return (
-      <div
+      <button
         key={a.cn}
+        type="button"
         onClick={() => onSel?.(a.cn)}
+        aria-label={`${a.ko} (${a.cn}) 선택`}
+        aria-pressed={sel}
         style={{
           gridColumn: String(a.c),
           gridRow: String(a.r),
@@ -39,6 +42,9 @@ export function Plate({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
+          textAlign: 'left',
+          color: 'inherit',
+          font: 'inherit',
           background: sel ? 'rgba(124,93,199,0.30)' : 'rgba(255,255,255,0.035)',
           border: sel ? `1.5px solid ${Z.goldBright}` : '1px solid rgba(199,162,63,0.18)',
           boxShadow: sel ? '0 0 16px rgba(227,195,107,0.3)' : 'none',
@@ -76,7 +82,7 @@ export function Plate({
           </div>
           <Brightness b={a.br} sm />
         </div>
-      </div>
+      </button>
     );
   };
 

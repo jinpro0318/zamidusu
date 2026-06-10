@@ -1,6 +1,8 @@
 'use client';
 
 // screens/Mypage.tsx — profile + saved charts
+import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { TabBar } from '@/components/ziwei/common';
 import { Toast } from '@/components/ziwei/sheets/Toast';
@@ -76,50 +78,64 @@ export function Mypage({
             내 명반 <span style={{ color: Z.ink3, fontWeight: 500 }}>({saved.length})</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {saved.map((s, i) => (
-              <div
-                key={i}
-                onClick={() => (s.id ? nav.go('result', { chartId: s.id }) : nav.tab('result'))}
-                style={{
-                  display: 'flex',
-                  gap: 13,
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  background: Z.white,
-                  border: `1px solid ${Z.line}`,
-                  borderRadius: 16,
-                  padding: '12px 14px',
-                  boxShadow: '0 2px 10px rgba(36,26,61,0.04)',
-                }}
-              >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    flexShrink: 0,
-                    background: `radial-gradient(circle at 35% 30%, ${Z.p600}, ${Z.p900})`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: Z.goldBright,
-                    fontFamily: SERIF,
-                    fontSize: 22,
-                    fontWeight: 700,
-                    boxShadow: '0 0 0 1px rgba(227,195,107,0.4)',
-                  }}
+            {saved.map((s, i) => {
+              const cardStyle: CSSProperties = {
+                display: 'flex',
+                gap: 13,
+                alignItems: 'center',
+                background: Z.white,
+                border: `1px solid ${Z.line}`,
+                borderRadius: 16,
+                padding: '12px 14px',
+                boxShadow: '0 2px 10px rgba(36,26,61,0.04)',
+                color: 'inherit',
+                textDecoration: 'none',
+              };
+              const inner = (
+                <>
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 12,
+                      flexShrink: 0,
+                      background: `radial-gradient(circle at 35% 30%, ${Z.p600}, ${Z.p900})`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: Z.goldBright,
+                      fontFamily: SERIF,
+                      fontSize: 22,
+                      fontWeight: 700,
+                      boxShadow: '0 0 0 1px rgba(227,195,107,0.4)',
+                    }}
+                  >
+                    {s.cn}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: Z.ink }}>{s.label}</div>
+                    <div style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 2 }}>{s.sub}</div>
+                  </div>
+                  <svg width="8" height="14" viewBox="0 0 8 14" aria-hidden>
+                    <path d="M1 1l6 6-6 6" stroke={Z.ink3} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </>
+              );
+              return s.id ? (
+                <Link
+                  key={i}
+                  href={nav.hrefFor('result', { chartId: s.id })}
+                  aria-label={`저장된 명반 열기: ${s.label}, ${s.sub}`}
+                  style={cardStyle}
                 >
-                  {s.cn}
+                  {inner}
+                </Link>
+              ) : (
+                <div key={i} style={cardStyle}>
+                  {inner}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: Z.ink }}>{s.label}</div>
-                  <div style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 2 }}>{s.sub}</div>
-                </div>
-                <svg width="8" height="14" viewBox="0 0 8 14">
-                  <path d="M1 1l6 6-6 6" stroke={Z.ink3} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

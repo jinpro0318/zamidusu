@@ -98,6 +98,18 @@ body {
 .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
 .no-scrollbar { scrollbar-width: none; }
 
+/* 키보드 포커스 가시화 — 보라/금색 테마 양쪽에서 잘 보이는 골드 링.
+   :focus-visible 만 사용해 마우스 클릭 시 링이 안 뜨도록 함. */
+:focus-visible {
+  outline: 2px solid #E3C36B;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+a:focus-visible, button:focus-visible {
+  outline: 2px solid #E3C36B;
+  outline-offset: 2px;
+}
+
 /* 전역 스크롤바 — 배경 #15102a 와 통일 (Windows/Linux 거터까지 같이 어둠) */
 html { scrollbar-width: thin; scrollbar-color: #15102a #15102a; }
 html::-webkit-scrollbar { width: 8px; height: 8px; }

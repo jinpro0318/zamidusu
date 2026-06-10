@@ -52,7 +52,10 @@ const BRIGHTNESS_MAP: Record<string, BrightnessKey> = {
 };
 
 function defaultArea(name: string): { cn: string; h: string; ko: string } {
-  return NAME_MAP[name] ?? { cn: name, h: name[0] ?? "?", ko: name };
+  // iztro의 ko-KR 로케일은 보통 궁(宮) suffix를 빼고 반환 (예: "부모", "부처", "형제").
+  // NAME_MAP 키는 "부모궁"·"부처궁" 형식이라 그대로 룩업하면 명궁 1개만 매치되는 버그가 있었음.
+  // suffix가 없는 케이스를 위해 "+ 궁" 변형을 폴백으로 시도.
+  return NAME_MAP[name] ?? NAME_MAP[name + "궁"] ?? { cn: name, h: name[0] ?? "?", ko: name };
 }
 
 export function toAreas(payload: AstrolabePayload): Area[] {
