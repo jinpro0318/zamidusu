@@ -36,7 +36,6 @@ export default async function ChartPage({ params }: { params: Promise<{ id: stri
       areas={areas}
       subjectName={chart.subjectName ?? undefined}
       birthLabel={birthLabel}
-      loggedIn={!!session?.user}
       chartId={chart.id}
     />
   );

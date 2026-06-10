@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField, Seg } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
-import { TabBar } from '@/components/ziwei/common';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
@@ -15,13 +14,12 @@ import type { Area, Nav } from '@/lib/ziwei-types';
 
 interface ResultProps {
   nav: Nav;
-  loggedIn: boolean;
   areas?: Area[];
   subjectName?: string;
   birthLabel?: string; // 예: "1990.05.20 · 양력 · 子時 · 男"
 }
 
-export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: ResultProps) {
+export function Result({ nav, areas, subjectName, birthLabel }: ResultProps) {
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
   const [showAll, setShowAll] = useState(false);
   const [share, setShare] = useState(false);
@@ -145,110 +143,85 @@ export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: Result
         </Link>
       </div>
 
-      {!loggedIn && (
-        <div
-          style={{
-            margin: '14px 18px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 9,
-            background: Z.p50,
-            border: `1px solid ${Z.p100}`,
-            borderRadius: 12,
-            padding: '10px 12px',
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-            <path d="M7 10V7a5 5 0 019.6-2" stroke={Z.p600} strokeWidth="2" strokeLinecap="round" />
-            <rect x="4" y="10" width="16" height="10" rx="2.5" stroke={Z.p600} strokeWidth="2" />
-          </svg>
-          <span style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, lineHeight: 1.4 }}>
-            로그인 없이 보는 중 · <b style={{ color: Z.ink }}>명반·12영역은 모두 무료</b>, 저장·공유·심층풀이는 가입 후
-          </span>
+      {/* ── 명반 차트 (메인) — 명반 페이지와 동일한 풀-와이드 다크 섹션 ── */}
+      <section
+        id="plate"
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          background: `linear-gradient(175deg, ${Z.p900}, ${Z.p850})`,
+          padding: '20px 18px 22px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 15,
+        }}
+      >
+        <StarField count={28} gold={4} seed={5} />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontFamily: SERIF, fontSize: 19, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
+            명반 차트 <span style={{ color: Z.goldBright }}>命盤</span>
+          </div>
+          <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}>{birthLabel ?? ''}</div>
         </div>
-      )}
-
-      {/* ── 명반 차트 카드 (메인) ──────────────────────────────────── */}
-      <div style={{ padding: '18px 18px 0' }}>
+        <div style={{ position: 'relative' }}>
+          <Seg
+            options={['쉬운 보기', '전통 보기']}
+            value={plateMode}
+            onChange={(v) => setPlateMode(v as '쉬운 보기' | '전통 보기')}
+            dark
+          />
+        </div>
+        <div style={{ position: 'relative' }}>
+          <Plate selKey={plateSel} onSel={setPlateSel} easy={plateMode === '쉬운 보기'} areas={allAreas} />
+        </div>
         <div
-          id="plate"
           style={{
             position: 'relative',
-            overflow: 'hidden',
-            background: `linear-gradient(175deg, ${Z.p900}, ${Z.p850})`,
-            borderRadius: 22,
-            padding: '18px 14px 16px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(227,195,107,0.25)',
+            borderRadius: 16,
+            padding: 14,
             display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-            boxShadow: '0 10px 28px rgba(36,26,61,0.18)',
+            gap: 13,
+            alignItems: 'center',
           }}
         >
-          <StarField count={22} gold={3} seed={3} />
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 700, color: '#fff' }}>
-              명반 차트 <span style={{ color: Z.goldBright }}>命盤</span>
+          <AreaIcon h={plateCur.h} size={46} sel />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: '#fff' }}>{plateCur.ko}</span>
+              <span style={{ fontFamily: SERIF, fontSize: 13, color: Z.p300 }}>{plateCur.cn}</span>
+              <Brightness b={plateCur.br} />
             </div>
-            <div style={{ fontFamily: SANS, fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>{birthLabel ?? ''}</div>
-          </div>
-          <div style={{ position: 'relative' }}>
-            <Seg
-              options={['쉬운 보기', '전통 보기']}
-              value={plateMode}
-              onChange={(v) => setPlateMode(v as '쉬운 보기' | '전통 보기')}
-              dark
-            />
-          </div>
-          <div style={{ position: 'relative' }}>
-            <Plate selKey={plateSel} onSel={setPlateSel} easy={plateMode === '쉬운 보기'} areas={allAreas} />
-          </div>
-          <div
-            style={{
-              position: 'relative',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(227,195,107,0.25)',
-              borderRadius: 14,
-              padding: 12,
-              display: 'flex',
-              gap: 12,
-              alignItems: 'center',
-            }}
-          >
-            <AreaIcon h={plateCur.h} size={42} sel />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontFamily: SANS, fontSize: 14.5, fontWeight: 700, color: '#fff' }}>{plateCur.ko}</span>
-                <span style={{ fontFamily: SERIF, fontSize: 12.5, color: Z.p300 }}>{plateCur.cn}</span>
-                <Brightness b={plateCur.br} />
-              </div>
-              <div style={{ fontFamily: SERIF, fontSize: 12.5, color: Z.goldBright, margin: '3px 0' }}>{plateCur.stars.join(' · ')}</div>
-              <div style={{ fontFamily: SANS, fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>{plateCur.line}</div>
-            </div>
-          </div>
-          <button
-            onClick={() => nav.go('detail', { key: plateSel })}
-            style={{
-              position: 'relative',
-              width: '100%',
-              cursor: 'pointer',
-              border: 'none',
-              borderRadius: 14,
-              padding: '13px',
-              fontFamily: SANS,
-              fontSize: 15,
-              fontWeight: 700,
-              color: Z.ink,
-              background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
-              boxShadow: '0 6px 18px rgba(199,162,63,0.32)',
-            }}
-          >
-            이 자리 자세히 보기 →
-          </button>
-          <div style={{ position: 'relative', textAlign: 'center', fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>
-            각 궁을 눌러 선택 · 두 번 눌러 상세
+            <div style={{ fontFamily: SERIF, fontSize: 13, color: Z.goldBright, margin: '3px 0' }}>{plateCur.stars.join(' · ')}</div>
+            <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'rgba(255,255,255,0.7)', lineHeight: 1.45 }}>{plateCur.line}</div>
           </div>
         </div>
-      </div>
+        <Link
+          href={nav.hrefFor('detail', { key: plateSel })}
+          aria-label={`${plateCur.ko} (${plateCur.cn}) 자세히 보기`}
+          style={{
+            position: 'relative',
+            width: '100%',
+            cursor: 'pointer',
+            borderRadius: 15,
+            padding: '14px',
+            fontFamily: SANS,
+            fontSize: 15.5,
+            fontWeight: 700,
+            color: Z.ink,
+            background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
+            boxShadow: '0 8px 22px rgba(199,162,63,0.32)',
+            textAlign: 'center',
+            textDecoration: 'none',
+          }}
+        >
+          이 자리 자세히 보기 →
+        </Link>
+        <div style={{ position: 'relative', textAlign: 'center', fontFamily: SANS, fontSize: 12.5, color: 'rgba(255,255,255,0.5)' }}>
+          각 궁을 눌러 선택 · 버튼을 눌러 상세 풀이
+        </div>
+      </section>
 
       {/* ── 스크롤 안내 ─────────────────────────────────────────── */}
       <div
@@ -342,7 +315,6 @@ export function Result({ nav, loggedIn, areas, subjectName, birthLabel }: Result
         </button>
       </div>
 
-      <TabBar active="result" nav={nav} />
       <ShareSheet open={share} onClose={() => setShare(false)} showToast={showToast} />
       <Toast msg={toast} />
     </div>

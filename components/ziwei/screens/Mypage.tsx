@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
-import { TabBar } from '@/components/ziwei/common';
+import { BackBar } from '@/components/ziwei/common';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import type { Nav } from '@/lib/ziwei-types';
@@ -31,7 +31,8 @@ export function Mypage({
       ];
   return (
     <div style={{ minHeight: '100%', background: Z.cream, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'calc(env(safe-area-inset-top) + 20px) 20px 10px' }}>
+      <BackBar nav={nav} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 20px 10px' }}>
         <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: Z.ink }}>마이페이지</div>
         <button onClick={() => showToast('설정 (준비 중)')} style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -159,7 +160,6 @@ export function Mypage({
         </button>
       </div>
 
-      <TabBar active="mypage" nav={nav} />
       <Toast msg={toast} />
     </div>
   );

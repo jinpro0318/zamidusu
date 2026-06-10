@@ -3,7 +3,7 @@
 // components/common/index.tsx — shared layout + form atoms
 import type { ReactNode } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
-import type { Nav, ScreenKey } from '@/lib/ziwei-types';
+import type { Nav } from '@/lib/ziwei-types';
 
 // ── screen wrapper that re-triggers the slide-in animation on key change ──
 export function AnimatedScreen({ keyId, children }: { keyId: string; children: ReactNode }) {
@@ -52,83 +52,6 @@ export function BackBar({ nav, title, dark, right }: { nav: Nav; title?: string;
       </button>
       <div style={{ flex: 1, fontFamily: SANS, fontSize: 17, fontWeight: 700, color: c }}>{title || ''}</div>
       {right}
-    </div>
-  );
-}
-
-// ── bottom tab bar ──
-export function TabBar({ active, nav }: { active: ScreenKey; nav: Nav }) {
-  const items: { k: ScreenKey; label: string; icon: (c: string) => ReactNode }[] = [
-    {
-      k: 'result',
-      label: '홈',
-      icon: (c) => <path d="M3 10.5L12 3l9 7.5M5 9v11h14V9" stroke={c} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />,
-    },
-    {
-      k: 'chart',
-      label: '명반',
-      icon: (c) => (
-        <g>
-          <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" stroke={c} strokeWidth="2" fill="none" />
-          <path d="M3.5 9h17M9 3.5v17" stroke={c} strokeWidth="1.6" />
-        </g>
-      ),
-    },
-    {
-      k: 'mypage',
-      label: '마이',
-      icon: (c) => (
-        <g>
-          <circle cx="12" cy="8.5" r="3.6" stroke={c} strokeWidth="2" fill="none" />
-          <path d="M5 20c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5" stroke={c} strokeWidth="2" fill="none" strokeLinecap="round" />
-        </g>
-      ),
-    },
-  ];
-  return (
-    <div
-      style={{
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 40,
-        marginTop: 'auto',
-        display: 'flex',
-        background: 'rgba(255,255,255,0.86)',
-        WebkitBackdropFilter: 'blur(14px)',
-        backdropFilter: 'blur(14px)',
-        borderTop: `1px solid ${Z.line}`,
-        paddingBottom: 'max(22px, env(safe-area-inset-bottom))',
-      }}
-    >
-      {items.map((it) => {
-        const on = it.k === active;
-        const c = on ? Z.p600 : Z.ink3;
-        return (
-          <button
-            key={it.k}
-            type="button"
-            onClick={() => nav.tab(it.k)}
-            aria-label={`${it.label} 탭으로 이동`}
-            aria-current={on ? 'page' : undefined}
-            style={{
-              flex: 1,
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              padding: '9px 0 4px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 3,
-            }}
-          >
-            <svg width="23" height="23" viewBox="0 0 24 24" aria-hidden>
-              {it.icon(c)}
-            </svg>
-            <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: on ? 700 : 500, color: c }}>{it.label}</span>
-          </button>
-        );
-      })}
     </div>
   );
 }

@@ -9,7 +9,6 @@ export type ScreenKey =
   | 'login'
   | 'input'
   | 'result'
-  | 'chart'
   | 'detail'
   | 'mypage';
 

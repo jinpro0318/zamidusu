@@ -17,7 +17,6 @@ function routeFor(s: ScreenKey, params?: NavParams): string {
     case "input":      return "/chart/new";
     case "mypage":     return "/mypage";
     case "result":
-    case "chart":
     case "detail": {
       if (!chartId) {
         if (process.env.NODE_ENV !== "production") {
@@ -26,7 +25,6 @@ function routeFor(s: ScreenKey, params?: NavParams): string {
         return "/";
       }
       if (s === "result") return `/chart/${chartId}`;
-      if (s === "chart") return `/chart/${chartId}/plate`;
       return `/chart/${chartId}/palace/${encodeURIComponent((params?.key as string) ?? "命宮")}`;
     }
   }
