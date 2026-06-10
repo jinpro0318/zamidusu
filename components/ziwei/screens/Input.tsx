@@ -55,6 +55,7 @@ export function Input({ nav }: { nav: Nav }) {
   async function submitChart() {
     if (!ready) return;
     setSubmitting(true);
+    let shouldReleaseSubmitting = true;
     try {
       const year = parseInt(yy, 10);
       const month = parseInt(mm, 10);
@@ -74,14 +75,27 @@ export function Input({ nav }: { nav: Nav }) {
           isLeapMonth,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? '명반 생성 실패');
+
+      // 서버가 본문 없이 죽는 경우(HTML 5xx 등)에도 res.json()으로 터지지 않게 방어.
+      const raw = await res.text();
+      const data = raw ? safeParseJSON(raw) : null;
+
+      if (!res.ok) {
+        const msg = data?.error ?? `명반 생성 실패 (HTTP ${res.status})`;
+        throw new Error(msg);
+      }
+      if (!data?.id) {
+        throw new Error('명반 생성 응답이 비어 있습니다. 잠시 후 다시 시도해 주세요.');
+      }
+
+      // 이동에 성공하면 submitting 해제는 페이지 언마운트가 처리.
+      shouldReleaseSubmitting = false;
       nav.reset('result');
-      // useNav.routeFor가 chartId param을 사용 — useRouter로 직접 이동
       window.location.assign(`/chart/${data.id}`);
     } catch (e: any) {
-      toast.error(e.message ?? '명반 생성 실패');
-      setSubmitting(false);
+      toast.error(e?.message ?? '명반 생성 실패');
+    } finally {
+      if (shouldReleaseSubmitting) setSubmitting(false);
     }
   }
 
@@ -210,6 +224,14 @@ export function Input({ nav }: { nav: Nav }) {
       />
     </div>
   );
+}
+
+function safeParseJSON(raw: string): any {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
 }
 
 // 한국 표준시 hour(0-23). 23시는 자시 = 같은 시진.

@@ -21,75 +21,112 @@ const InputSchema = z.object({
 
 const IZTRO_VERSION = "2.5.8";
 
+function errorBody(stage: string, err: unknown) {
+  const e = err as { message?: string; code?: string; name?: string };
+  return {
+    error: "명반 생성 중 오류가 발생했습니다.",
+    stage,
+    detail: e?.message ?? String(err),
+    code: e?.code,
+    name: e?.name,
+  };
+}
+
 export async function POST(req: Request) {
-  const session = await auth();
-  const userId = session?.user
-    ? ((session.user as any).id as string)
-    : await getOrCreateGuestUserId();
-
-  const body = await req.json();
-  const parsed = InputSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid input", issues: parsed.error.issues }, { status: 400 });
-  }
-  const input = parsed.data;
-
-  const ent = await getEntitlements(userId);
-  const count = await db.chart.count({ where: { userId } });
-  if (ent.maxCharts !== -1 && count >= ent.maxCharts) {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch (err) {
+    console.error("[POST /api/charts] invalid JSON body", err);
     return NextResponse.json(
-      { error: `무료 플랜은 ${ent.maxCharts}개 까지 저장 가능합니다.` },
-      { status: 402 },
+      { error: "요청 본문이 올바른 JSON이 아닙니다." },
+      { status: 400 },
     );
   }
 
-  let payload;
-  try {
-    const astrolabe = generateAstrolabe(input);
-    payload = serializeAstrolabe(astrolabe, IZTRO_VERSION);
-  } catch (e: any) {
-    return NextResponse.json({ error: "명반 계산 실패", detail: e.message }, { status: 500 });
+  const parsed = InputSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "입력값이 올바르지 않습니다.", issues: parsed.error.issues },
+      { status: 400 },
+    );
   }
+  const input = parsed.data;
 
-  const chart = await db.chart.create({
-    data: {
-      userId,
-      subjectName: input.subjectName,
-      gender: input.gender,
-      birthCalendar: input.calendar,
-      birthYear: input.year,
-      birthMonth: input.month,
-      birthDay: input.day,
-      birthHour: input.hour,
-      birthMinute: input.minute,
-      isLeapMonth: input.isLeapMonth ?? false,
-      payload: JSON.stringify(payload),
-      iztroVersion: IZTRO_VERSION,
-    },
-  });
+  try {
+    const session = await auth();
+    const userId = session?.user
+      ? ((session.user as any).id as string)
+      : await getOrCreateGuestUserId();
 
-  return NextResponse.json({ id: chart.id }, { status: 201 });
+    const ent = await getEntitlements(userId);
+    const count = await db.chart.count({ where: { userId } });
+    if (ent.maxCharts !== -1 && count >= ent.maxCharts) {
+      return NextResponse.json(
+        { error: `무료 플랜은 ${ent.maxCharts}개까지 저장 가능합니다.` },
+        { status: 402 },
+      );
+    }
+
+    let payload;
+    try {
+      const astrolabe = generateAstrolabe(input);
+      payload = serializeAstrolabe(astrolabe, IZTRO_VERSION);
+    } catch (err) {
+      console.error("[POST /api/charts] iztro 계산 실패", { input, err });
+      return NextResponse.json(errorBody("astrolabe", err), { status: 500 });
+    }
+
+    const chart = await db.chart.create({
+      data: {
+        userId,
+        subjectName: input.subjectName,
+        gender: input.gender,
+        birthCalendar: input.calendar,
+        birthYear: input.year,
+        birthMonth: input.month,
+        birthDay: input.day,
+        birthHour: input.hour,
+        birthMinute: input.minute,
+        isLeapMonth: input.isLeapMonth ?? false,
+        payload: JSON.stringify(payload),
+        iztroVersion: IZTRO_VERSION,
+      },
+    });
+
+    return NextResponse.json({ id: chart.id }, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/charts] 처리 실패", err);
+    return NextResponse.json(errorBody("server", err), { status: 500 });
+  }
 }
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const userId = (session.user as any).id as string;
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const userId = (session.user as any).id as string;
 
-  const charts = await db.chart.findMany({
-    where: { userId },
-    select: {
-      id: true,
-      subjectName: true,
-      gender: true,
-      birthYear: true,
-      birthMonth: true,
-      birthDay: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
+    const charts = await db.chart.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        subjectName: true,
+        gender: true,
+        birthYear: true,
+        birthMonth: true,
+        birthDay: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
 
-  return NextResponse.json({ charts });
+    return NextResponse.json({ charts });
+  } catch (err) {
+    console.error("[GET /api/charts] 처리 실패", err);
+    return NextResponse.json(errorBody("server", err), { status: 500 });
+  }
 }
