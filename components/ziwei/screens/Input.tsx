@@ -96,8 +96,8 @@ export function Input({ nav }: { nav: Nav }) {
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
-        minHeight: '100vh',
-        height: '100dvh',
+        minHeight: '100%',
+        height: '100%',
       }}
     >
       <BackBar nav={nav} />
