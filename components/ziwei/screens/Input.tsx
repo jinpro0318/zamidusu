@@ -102,10 +102,8 @@ export function Input({ nav }: { nav: Nav }) {
       const data = raw ? safeParseJSON(raw) : null;
 
       if (!res.ok) {
-        const base = data?.error ?? `명반 생성 실패 (HTTP ${res.status})`;
-        // 서버가 detail을 보냈고 error와 다르면 한 줄 더 보여줘서 사용자가 원인 파악 가능.
-        const msg = data?.detail && data.detail !== data.error ? `${base}\n${data.detail}` : base;
-        throw new Error(msg);
+        // 서버가 노출 허용한 일반화된 메시지만 사용. 내부 detail/stack은 절대 표시하지 않음.
+        throw new Error(data?.error ?? '명반 생성에 실패했어요. 잠시 후 다시 시도해 주세요.');
       }
       if (!data?.id) {
         throw new Error('명반 생성 응답이 비어 있습니다. 잠시 후 다시 시도해 주세요.');

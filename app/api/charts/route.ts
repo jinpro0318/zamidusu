@@ -21,15 +21,29 @@ const InputSchema = z.object({
 
 const IZTRO_VERSION = "2.5.8";
 
-function errorBody(stage: string, err: unknown) {
-  const e = err as { message?: string; code?: string; name?: string };
-  return {
-    error: "명반 생성 중 오류가 발생했습니다.",
-    stage,
-    detail: e?.message ?? String(err),
-    code: e?.code,
-    name: e?.name,
-  };
+const GENERIC_500 = "명반 생성에 실패했어요. 잠시 후 다시 시도해 주세요.";
+
+// Prisma 알려진 에러 코드를 사용자 친화적 한글로 매핑.
+// 참고: https://www.prisma.io/docs/orm/reference/error-reference
+// 매핑 안 된 코드 / 다른 종류 에러는 GENERIC_500을 사용해 내부 메시지 노출을 방지한다.
+const PRISMA_ERROR_MESSAGES: Record<string, string> = {
+  P2002: "이미 등록된 정보예요.",
+  P2003: "참조한 항목을 찾을 수 없어요.",
+  P2025: "해당 항목을 찾을 수 없어요.",
+  P1001: "데이터베이스에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.",
+  P1002: "데이터베이스 응답이 지연되고 있어요.",
+  P1008: "요청 처리가 너무 오래 걸려요. 잠시 후 다시 시도해 주세요.",
+  P1017: "데이터베이스 연결이 끊겼어요. 잠시 후 다시 시도해 주세요.",
+};
+
+// catch 한 에러를 클라이언트에 안전하게 노출할 수 있는 본문으로 변환.
+// 내부 메시지/스택트레이스는 절대 포함하지 않는다 — 그건 console.error 몫.
+function safeErrorBody(err: unknown): { error: string } {
+  const code = (err as { code?: unknown })?.code;
+  if (typeof code === "string" && code in PRISMA_ERROR_MESSAGES) {
+    return { error: PRISMA_ERROR_MESSAGES[code] };
+  }
+  return { error: GENERIC_500 };
 }
 
 // iztro / lunar-typescript 가 던지는 영문 에러를 사용자 친화적 한글 메시지로 변환.
@@ -95,10 +109,10 @@ export async function POST(req: Request) {
       payload = serializeAstrolabe(astrolabe, IZTRO_VERSION);
     } catch (err) {
       console.error("[POST /api/charts] iztro 계산 실패", { input, err });
-      const detail = (err as { message?: string })?.message ?? String(err);
-      const friendly = translateIztroError(detail, input);
+      const rawMessage = (err as { message?: string })?.message ?? String(err);
+      // iztro 에러는 입력값 문제이므로 한글로 번역한 사용자 메시지만 응답.
       return NextResponse.json(
-        { error: friendly, stage: "astrolabe", detail },
+        { error: translateIztroError(rawMessage, input) },
         { status: 400 },
       );
     }
@@ -123,7 +137,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ id: chart.id }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/charts] 처리 실패", err);
-    return NextResponse.json(errorBody("server", err), { status: 500 });
+    return NextResponse.json(safeErrorBody(err), { status: 500 });
   }
 }
 
@@ -153,6 +167,6 @@ export async function GET() {
     return NextResponse.json({ charts });
   } catch (err) {
     console.error("[GET /api/charts] 처리 실패", err);
-    return NextResponse.json(errorBody("server", err), { status: 500 });
+    return NextResponse.json(safeErrorBody(err), { status: 500 });
   }
 }
