@@ -7,17 +7,28 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 // ziwei-app screen key → Next.js route 매핑.
 // `chartId`는 NavParams로 받아 동적 경로에 끼움.
+// chartId가 없는데 chart 컨텍스트 화면으로 가려고 하면 "/"로 폴백 + 경고 (이전에는
+// "current"라는 가짜 id로 404를 유발했음).
 function routeFor(s: ScreenKey, params?: NavParams): string {
-  const chartId = (params?.chartId as string | undefined) ?? "current";
+  const chartId = params?.chartId as string | undefined;
   switch (s) {
     case "onboarding": return "/";
     case "login":      return "/sign-in";
     case "input":      return "/chart/new";
-    case "loading":    return "/chart/loading";
-    case "result":     return `/chart/${chartId}`;
-    case "chart":      return `/chart/${chartId}/plate`;
-    case "detail":     return `/chart/${chartId}/palace/${encodeURIComponent((params?.key as string) ?? "命宮")}`;
     case "mypage":     return "/mypage";
+    case "result":
+    case "chart":
+    case "detail": {
+      if (!chartId) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(`[useNav] '${s}' navigation requires chartId — falling back to '/'`);
+        }
+        return "/";
+      }
+      if (s === "result") return `/chart/${chartId}`;
+      if (s === "chart") return `/chart/${chartId}/plate`;
+      return `/chart/${chartId}/palace/${encodeURIComponent((params?.key as string) ?? "命宮")}`;
+    }
   }
 }
 
@@ -48,6 +59,7 @@ export function useNav(currentChartId?: string): Nav {
       tab: (s) => router.push(routeFor(s, { chartId: currentChartId })),
       reset: (s) => router.replace(routeFor(s, { chartId: currentChartId })),
       requireLogin,
+      hrefFor: (s, params) => routeFor(s, { chartId: currentChartId, ...params }),
     }),
     [router, requireLogin, currentChartId],
   );

@@ -3,12 +3,11 @@ import type { BrightnessKey } from '@/theme/tokens';
 
 export type { BrightnessKey };
 
-// the 8 screens in the prototype flow
+// app의 명명된 화면 (Next.js 라우트로 1:1 매핑됨)
 export type ScreenKey =
   | 'onboarding'
   | 'login'
   | 'input'
-  | 'loading'
   | 'result'
   | 'chart'
   | 'detail'
@@ -29,6 +28,8 @@ export interface Nav {
   tab: (s: ScreenKey) => void;
   reset: (s: ScreenKey) => void;
   requireLogin: (reason: GateReason, cb?: () => void) => void;
+  /** Link href= 용 — Link로 SSR-friendly 이동(접근성/SEO). go와 같은 URL 산출. */
+  hrefFor: (s: ScreenKey, params?: NavParams) => string;
 }
 
 // one of the 12 palaces / life-areas
