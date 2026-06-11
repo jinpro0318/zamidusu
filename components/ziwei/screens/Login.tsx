@@ -37,6 +37,8 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
         if (error) throw error;
+        // 게스트 명반을 이 계정으로 인계 (OAuth는 /auth/callback에서 처리)
+        await fetch('/api/auth/adopt-guest', { method: 'POST' }).catch(() => {});
         router.push(callbackUrl ?? '/mypage');
         router.refresh();
       }

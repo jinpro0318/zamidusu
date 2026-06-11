@@ -1,8 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getGuestUserId } from "@/lib/guest";
 import { ChatPanel } from "@/components/ai/ChatPanel";
 import { ChevronLeft } from "lucide-react";
 
@@ -11,10 +10,11 @@ export const metadata = { title: "AI 해석" };
 export default async function ChartAiPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
-  const userId = session?.user
-    ? ((session.user as any).id as string)
-    : await getGuestUserId();
-  if (!userId) notFound();
+  // AI 해석은 회원 전용 — 게스트는 로그인 후 이 페이지로 복귀
+  if (!session?.user) {
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent(`/chart/${id}/ai`)}`);
+  }
+  const userId = (session.user as any).id as string;
 
   const chart = await db.chart.findFirst({ where: { id, userId } });
   if (!chart) notFound();

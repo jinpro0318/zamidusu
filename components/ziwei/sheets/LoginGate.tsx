@@ -9,6 +9,7 @@ const COPY: Record<string, { badge: string; t: string; s: string }> = {
   ai: { badge: 'AI 심층 풀이', t: '더 깊은 풀이, 보여드릴게요', s: '카카오로 시작하면 전체 풀이를 바로 볼 수 있어요.' },
   save: { badge: '명반 저장', t: '이 명반을 저장할까요?', s: '로그인하면 언제든 다시 꺼내볼 수 있어요.' },
   share: { badge: '친구 공유', t: '친구에게 공유하기', s: '카카오로 시작하면 공유 링크가 바로 만들어져요.' },
+  detail: { badge: '상세 풀이', t: '여기서부터는 회원 전용이에요', s: '카카오로 시작하면 12궁 상세 풀이·대운 타임라인·AI 해석이 모두 열려요.' },
 };
 
 export function LoginGate({ gate, onClose, onLogin }: { gate: GateState | null; onClose: () => void; onLogin: () => void }) {

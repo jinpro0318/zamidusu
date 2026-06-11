@@ -1,8 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getGuestUserId } from "@/lib/guest";
 import { DecadalTimeline } from "@/components/timeline/DecadalTimeline";
 import { extractDecadals, currentDecadalAge } from "@/lib/iztro/horoscope";
 import { ChevronLeft } from "lucide-react";
@@ -12,10 +11,11 @@ export const metadata = { title: "대운 타임라인" };
 export default async function TimelinePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
-  const userId = session?.user
-    ? ((session.user as any).id as string)
-    : await getGuestUserId();
-  if (!userId) notFound();
+  // 대운 타임라인은 회원 전용 — 게스트는 로그인 후 이 페이지로 복귀
+  if (!session?.user) {
+    redirect(`/sign-in?callbackUrl=${encodeURIComponent(`/chart/${id}/timeline`)}`);
+  }
+  const userId = (session.user as any).id as string;
 
   const chart = await db.chart.findFirst({ where: { id, userId } });
   if (!chart) notFound();

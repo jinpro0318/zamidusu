@@ -9,12 +9,22 @@ export function ResultClient({
   subjectName,
   birthLabel,
   chartId,
+  loggedIn,
 }: {
   areas: Area[];
   subjectName?: string;
   birthLabel: string;
   chartId: string;
+  loggedIn: boolean;
 }) {
   const nav = useNav(chartId);
-  return <Result nav={nav} areas={areas} subjectName={subjectName} birthLabel={birthLabel} />;
+  return (
+    <Result
+      nav={nav}
+      areas={areas}
+      subjectName={subjectName}
+      birthLabel={birthLabel}
+      loggedIn={loggedIn}
+    />
+  );
 }

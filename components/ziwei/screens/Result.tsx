@@ -2,30 +2,46 @@
 
 // screens/Result.tsx — 메인 결과 화면 (명반 차트 + 12영역 통합 스크롤 페이지)
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField, Seg } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
+import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
-import type { Area, Nav } from '@/lib/ziwei-types';
+import type { Area, GateState, Nav } from '@/lib/ziwei-types';
 
 interface ResultProps {
   nav: Nav;
   areas?: Area[];
   subjectName?: string;
   birthLabel?: string; // 예: "1990.05.20 · 양력 · 子時 · 男"
+  /** false면 상세 진입(궁 상세·타임라인·AI)을 로그인 게이트로 막는다 */
+  loggedIn?: boolean;
 }
 
-export function Result({ nav, areas, subjectName, birthLabel }: ResultProps) {
+export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }: ResultProps) {
+  const router = useRouter();
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
   const [showAll, setShowAll] = useState(false);
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
   const [plateSel, setPlateSel] = useState('命宮');
   const [plateMode, setPlateMode] = useState<'쉬운 보기' | '전통 보기'>('쉬운 보기');
+  const [gate, setGate] = useState<GateState | null>(null);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  // 게스트가 상세 링크를 누르면 이동을 막고 로그인 시트를 띄운다.
+  // 로그인 후 callbackUrl로 원래 가려던 상세 페이지에 복귀.
+  const guardDetail = (e: React.MouseEvent, href: string) => {
+    if (loggedIn) return;
+    e.preventDefault();
+    setPendingHref(href);
+    setGate({ reason: 'detail', onSuccess: null });
+  };
 
   const sixKeys = ['命宮', '夫妻宮', '財帛宮', '官祿宮', '疾厄宮', '田宅宮'];
   const list = showAll
@@ -112,6 +128,7 @@ export function Result({ nav, areas, subjectName, birthLabel }: ResultProps) {
         </div>
         <Link
           href={nav.hrefFor('detail', { key: '命宮' })}
+          onClick={(e) => guardDetail(e, nav.hrefFor('detail', { key: '命宮' }))}
           aria-label={`내 명궁 ${soul.cn} 상세 보기`}
           style={{
             position: 'relative',
@@ -199,6 +216,7 @@ export function Result({ nav, areas, subjectName, birthLabel }: ResultProps) {
         </div>
         <Link
           href={nav.hrefFor('detail', { key: plateSel })}
+          onClick={(e) => guardDetail(e, nav.hrefFor('detail', { key: plateSel }))}
           aria-label={`${plateCur.ko} (${plateCur.cn}) 자세히 보기`}
           style={{
             position: 'relative',
@@ -248,11 +266,17 @@ export function Result({ nav, areas, subjectName, birthLabel }: ResultProps) {
         <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '6px 4px 12px' }}>
           12궁을 <b style={{ color: Z.ink }}>내 인생 영역</b>으로 풀었어요 · 눌러서 자세히 보기
         </p>
+        {!loggedIn && (
+          <p style={{ fontFamily: SANS, fontSize: 12.5, color: Z.p600, fontWeight: 600, margin: '0 4px 12px' }}>
+            🔒 상세 풀이·대운 타임라인·AI 해석은 로그인 후 열려요
+          </p>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {list.map((a) => (
             <Link
               key={a.cn}
               href={nav.hrefFor('detail', { key: a.cn })}
+              onClick={(e) => guardDetail(e, nav.hrefFor('detail', { key: a.cn }))}
               aria-label={`${a.ko} (${a.cn}) 상세 보기`}
               style={{
                 display: 'flex',
@@ -316,6 +340,13 @@ export function Result({ nav, areas, subjectName, birthLabel }: ResultProps) {
       </div>
 
       <ShareSheet open={share} onClose={() => setShare(false)} showToast={showToast} />
+      <LoginGate
+        gate={gate}
+        onClose={() => setGate(null)}
+        onLogin={() =>
+          router.push(`/sign-in?callbackUrl=${encodeURIComponent(pendingHref ?? '/')}`)
+        }
+      />
       <Toast msg={toast} />
     </div>
   );

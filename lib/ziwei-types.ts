@@ -13,7 +13,7 @@ export type ScreenKey =
   | 'mypage';
 
 // reasons a login gate is raised (drives the gate copy)
-export type GateReason = 'ai' | 'save' | 'share';
+export type GateReason = 'ai' | 'save' | 'share' | 'detail';
 
 export interface NavParams {
   /** palace key, e.g. '命宮' — used by the detail screen */

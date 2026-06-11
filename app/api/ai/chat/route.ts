@@ -5,17 +5,17 @@ import { buildSystemPrompt } from "@/lib/ai/prompt-builder";
 import { pickModel, modelIdFor } from "@/lib/ai/gateway";
 import { isSafeQuery } from "@/lib/ai/guardrails";
 import { getEntitlements } from "@/lib/entitlements";
-import { getGuestUserId } from "@/lib/guest";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  // AI 해석은 회원 전용 — 게스트 쿠키 재발급으로 일일 한도를 우회하는 비용 누수 차단
   const session = await auth();
-  const userId = session?.user
-    ? ((session.user as any).id as string)
-    : await getGuestUserId();
-  if (!userId) return new Response("Unauthorized", { status: 401 });
+  if (!session?.user) {
+    return new Response("AI 해석은 로그인 후 이용할 수 있어요.", { status: 401 });
+  }
+  const userId = (session.user as any).id as string;
 
   const { chartId, messages } = await req.json();
   // 입력 상한 — 과도한 컨텍스트로 인한 토큰 비용 방지
