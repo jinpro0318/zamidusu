@@ -28,6 +28,7 @@ export async function getOrCreateGuestUserId(): Promise<string> {
   store.set(GUEST_COOKIE, id, {
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     maxAge: COOKIE_MAX_AGE,
     path: "/",
   });

@@ -13,13 +13,14 @@ const apiKey =
 const provider = createGoogleGenerativeAI({ apiKey });
 
 // 플랜별 Gemini 모델 분기.
-// - FREE: gemini-1.5-flash (가성비, 무료 tier 가능)
-// - PREMIUM: gemini-2.0-flash (속도·품질 균형)
+// 주의: gemini-1.5 계열은 retire되어 이 API 키에서 404를 반환한다 (2026-06 확인).
+// - FREE: gemini-2.5-flash-lite (가성비)
+// - PREMIUM: gemini-2.5-flash (속도·품질 균형)
 // - PRO: gemini-2.5-pro (최고 품질, 컨텍스트 1M)
 export function modelIdFor(plan: "FREE" | "PREMIUM" | "PRO"): string {
   if (plan === "PRO") return "gemini-2.5-pro";
-  if (plan === "PREMIUM") return "gemini-2.0-flash";
-  return "gemini-1.5-flash";
+  if (plan === "PREMIUM") return "gemini-2.5-flash";
+  return "gemini-2.5-flash-lite";
 }
 
 export function pickModel(plan: "FREE" | "PREMIUM" | "PRO") {

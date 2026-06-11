@@ -33,6 +33,7 @@ model User {
   payments        Payment[]
   conversations   AiConversation[]
   compatibilities Compatibility[]  @relation("CompatibilityOwner")
+  aiDailyUsages   AiDailyUsage[]
 }
 
 model Account {
@@ -167,6 +168,19 @@ model AiConversation {
   updatedAt DateTime @updatedAt
 
   @@index([userId, chartId])
+}
+
+// AI 일일 사용량 — 플랜별 일일 턴 한도를 정확히 집계 (추정치 X).
+// date는 KST 기준 "YYYY-MM-DD" 문자열. upsert increment로 원자적 카운트.
+model AiDailyUsage {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date  String // "YYYY-MM-DD" (Asia/Seoul 기준)
+  turns Int    @default(0)
+
+  @@unique([userId, date])
 }
 
 model Compatibility {

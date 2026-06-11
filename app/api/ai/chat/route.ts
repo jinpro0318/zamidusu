@@ -18,8 +18,15 @@ export async function POST(req: Request) {
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
   const { chartId, messages } = await req.json();
-  const last = messages?.at(-1);
+  // 입력 상한 — 과도한 컨텍스트로 인한 토큰 비용 방지
+  if (!Array.isArray(messages) || messages.length > 40) {
+    return new Response("대화가 너무 길어요. 새 대화를 시작해 주세요.", { status: 400 });
+  }
+  const last = messages.at(-1);
   if (last?.role === "user") {
+    if (typeof last.content === "string" && last.content.length > 1000) {
+      return new Response("질문은 1,000자 이내로 입력해 주세요.", { status: 400 });
+    }
     const safety = isSafeQuery(last.content ?? "");
     if (!safety.ok) {
       return new Response(safety.reason, { status: 400 });
@@ -30,15 +37,14 @@ export async function POST(req: Request) {
   if (!chart) return new Response("Not found", { status: 404 });
 
   const ent = await getEntitlements(userId);
-  // 간단한 일별 한도 체크 (실제는 Redis/RuntimeCache 권장)
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const usedToday = await db.aiConversation.aggregate({
-    where: { userId, updatedAt: { gte: todayStart } },
-    _sum: { tokenUsage: true },
+  // 일일 턴 한도 — KST 기준 날짜별로 정확히 집계. upsert increment라 동시 요청에도 원자적.
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+  const usage = await db.aiDailyUsage.upsert({
+    where: { userId_date: { userId, date: today } },
+    create: { userId, date: today, turns: 1 },
+    update: { turns: { increment: 1 } },
   });
-  const usedTurns = (usedToday._sum.tokenUsage ?? 0) / 800; // 평균 토큰/턴 추정
-  if (usedTurns >= ent.aiTurnsPerDay) {
+  if (usage.turns > ent.aiTurnsPerDay) {
     return new Response(
       `오늘의 AI 사용량을 모두 사용했어요. (한도 ${ent.aiTurnsPerDay}턴)`,
       { status: 402 },
@@ -75,8 +81,9 @@ export async function POST(req: Request) {
             tokenUsage: { increment: usage?.totalTokens ?? 0 },
           },
         });
-      } catch {
-        // 사일런트 — 응답 끊김 방지
+      } catch (err) {
+        // 응답 스트림은 끊지 않되, 사용량 기록 실패는 반드시 로그에 남긴다.
+        console.error("[POST /api/ai/chat] 대화 저장 실패", err);
       }
     },
   });
