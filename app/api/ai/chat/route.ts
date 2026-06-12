@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     return new Response("사용자 정보를 찾을 수 없어요.", { status: 401 });
   }
 
-  const { chartId, messages } = await req.json();
+  const { chartId, messages, palaceKey } = await req.json();
   // 입력 상한 — 과도한 컨텍스트로 인한 토큰 비용 방지
   if (!Array.isArray(messages) || messages.length > 40) {
     return new Response("대화가 너무 길어요. 새 대화를 시작해 주세요.", { status: 400 });
@@ -59,6 +59,7 @@ export async function POST(req: Request) {
     subjectName: chart.subjectName,
     gender: chart.gender,
     plan: ent.plan,
+    palaceKey: palaceKey ?? undefined,
   });
 
   const result = streamText({
