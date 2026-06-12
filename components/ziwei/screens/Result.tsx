@@ -171,29 +171,29 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
               display: 'block',
             }}
           >
-            이 자리 자세히 보기 →
+            자세히 보기
           </Link>
           <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
             각 궁을 눌러 선택 · 버튼을 눌러 상세 풀이
           </div>
-        </div>
-      </div>
 
-      {/* ── 스크롤 안내 ── */}
-      <div
-        aria-hidden
-        style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-          padding: '18px 18px 6px',
-          animation: 'zmds-scroll-hint 1.6s ease-in-out infinite',
-        }}
-      >
-        <span style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink3, fontWeight: 600 }}>
-          아래로 스크롤하여 12 영역 보기
-        </span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M6 9l6 6 6-6" stroke={Z.p600} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+          {/* 스크롤 안내 — 다크 패널 하단에 배치해 확실히 보이도록 */}
+          <div
+            aria-hidden
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+              paddingTop: 6,
+              animation: 'zmds-scroll-hint 1.6s ease-in-out infinite',
+            }}
+          >
+            <span style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.01em' }}>
+              아래로 스크롤하면 12개 영역 풀이가 있어요
+            </span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M6 9l6 6 6-6" stroke={Z.goldBright} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </div>
       </div>
 
       {/* ── 12 영역 리스트 ── */}
