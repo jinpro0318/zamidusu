@@ -22,6 +22,7 @@ export function DetailClient({
       areas={areas}
       params={{ key: palaceKey }}
       loggedIn={loggedIn}
+      chartId={chartId}
     />
   );
 }

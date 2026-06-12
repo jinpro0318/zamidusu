@@ -1,7 +1,8 @@
 'use client';
 
-// screens/Detail.tsx — single palace detail + suggested questions + chat
-import { useRef, useState } from 'react';
+// screens/Detail.tsx — single palace detail + suggested questions + AI chat
+import { useRef, useEffect, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
@@ -13,18 +14,14 @@ import { AREA_INFO } from '@/data/areaInfo';
 import { QUESTIONS } from '@/data/questions';
 import type { Area, Nav, NavParams, SuggestedQuestion } from '@/lib/ziwei-types';
 
-interface Msg {
-  me: boolean;
-  t: string;
-}
-
 export function Detail({
-  nav, params, loggedIn, areas,
+  nav, params, loggedIn, areas, chartId,
 }: {
   nav: Nav;
   params?: NavParams;
   loggedIn: boolean;
   areas?: Area[];
+  chartId?: string;
 }) {
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
   const key = params?.key || '夫妻宮';
@@ -34,17 +31,28 @@ export function Detail({
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
   const [openQ, setOpenQ] = useState<SuggestedQuestion | null>(null);
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [txt, setTxt] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const doSend = () => {
-    const q = txt.trim() || `${a.ko}, 더 자세히 알려줘`;
-    const reply = info.ai ? `${info.ai} 더 궁금한 점이 있으면 편하게 물어보세요.` : '곧 더 깊은 풀이를 준비할게요.';
-    setMsgs((m) => [...m, { me: true, t: q }, { me: false, t: reply }]);
-    setTxt('');
+  const { messages, input, handleInputChange, handleSubmit, status, append } = useChat({
+    api: '/api/ai/chat',
+    body: { chartId, palaceKey: key },
+  });
+  const isLoading = status === 'streaming' || status === 'submitted';
+
+  // 새 메시지가 쌓이면 스크롤 하단으로
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleQAOpen = (item: SuggestedQuestion) => {
+    setOpenQ(item);
+    // 추천 질문도 AI 채팅에 반영
+    if (chartId) {
+      append({ role: 'user', content: item.q });
+    }
   };
-  const onSend = () => (loggedIn ? doSend() : nav.requireLogin('ai', () => {}));
 
   return (
     <div style={{ minHeight: '100%', background: Z.cream, display: 'flex', flexDirection: 'column' }}>
@@ -53,7 +61,7 @@ export function Detail({
         style={{
           position: 'relative',
           overflow: 'hidden',
-          background: `linear-gradient(160deg, ${Z.p800}, ${Z.p600})`,
+          background: `linear-gradient(160deg, ${Z.p900}, ${Z.p800})`,
           padding: 'calc(env(safe-area-inset-top) + 16px) 14px 22px',
           borderBottomLeftRadius: 24,
           borderBottomRightRadius: 24,
@@ -72,7 +80,7 @@ export function Detail({
           <div style={{ flex: 1 }} />
           <button
             onClick={() => nav.requireLogin('save', () => showToast('명반을 저장했어요'))}
-            style={{ border: 'none', background: 'rgba(255,255,255,0.14)', cursor: 'pointer', borderRadius: 16, padding: '7px 12px', fontFamily: SANS, fontSize: 12.5, color: '#fff', fontWeight: 600 }}
+            style={{ border: 'none', background: 'rgba(255,255,255,0.12)', cursor: 'pointer', borderRadius: 16, padding: '7px 12px', fontFamily: SANS, fontSize: 12.5, color: '#fff', fontWeight: 600 }}
           >
             저장
           </button>
@@ -93,13 +101,9 @@ export function Detail({
                 <span
                   key={s}
                   style={{
-                    fontFamily: SERIF,
-                    fontSize: 12.5,
-                    color: Z.goldBright,
-                    background: 'rgba(227,195,107,0.15)',
-                    border: '1px solid rgba(227,195,107,0.35)',
-                    borderRadius: 8,
-                    padding: '2px 8px',
+                    fontFamily: SERIF, fontSize: 12.5, color: Z.goldBright,
+                    background: 'rgba(227,195,107,0.15)', border: '1px solid rgba(227,195,107,0.35)',
+                    borderRadius: 8, padding: '2px 8px',
                   }}
                 >
                   {s}
@@ -111,17 +115,22 @@ export function Detail({
         </div>
       </div>
 
-      <div style={{ padding: '18px 18px 30px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: '18px 18px 120px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* 이 자리는? */}
         <div style={{ background: Z.p50, border: `1px solid ${Z.p100}`, borderRadius: 16, padding: '14px 16px' }}>
           <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: Z.p600, marginBottom: 5 }}>이 자리는?</div>
           <div style={{ fontFamily: SANS, fontSize: 14.5, color: Z.ink, lineHeight: 1.55 }}>{info.about}</div>
         </div>
+
+        {/* 별 의미 */}
         <div>
           <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: Z.ink, marginBottom: 9 }}>이 자리의 별 · {a.stars.join('·')}</div>
           <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '14px 16px', fontFamily: SANS, fontSize: 14, color: Z.ink2, lineHeight: 1.6 }}>
             {info.star}
           </div>
         </div>
+
+        {/* AI 쉬운 풀이 (정적) */}
         <div>
           <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: Z.ink, marginBottom: 9, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: 18, height: 18, borderRadius: '50%', background: `linear-gradient(180deg,${Z.p500},${Z.p700})`, display: 'inline-block' }} />
@@ -140,36 +149,21 @@ export function Detail({
             {qs.map((item, i) => (
               <button
                 key={i}
-                onClick={() => setOpenQ(item)}
+                onClick={() => handleQAOpen(item)}
                 style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 11,
-                  background: Z.white,
-                  border: `1.5px solid ${Z.p100}`,
-                  borderRadius: 14,
-                  padding: '13px 14px',
+                  width: '100%', textAlign: 'left', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 11,
+                  background: Z.white, border: `1.5px solid ${Z.p100}`,
+                  borderRadius: 14, padding: '13px 14px',
                   boxShadow: '0 2px 10px rgba(36,26,61,0.04)',
                 }}
               >
                 <span
                   style={{
-                    width: 27,
-                    height: 27,
-                    borderRadius: '50%',
-                    flexShrink: 0,
-                    background: Z.p50,
-                    border: `1px solid ${Z.p100}`,
-                    color: Z.p600,
-                    fontFamily: SERIF,
-                    fontSize: 14,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    width: 27, height: 27, borderRadius: '50%', flexShrink: 0,
+                    background: Z.p50, border: `1px solid ${Z.p100}`,
+                    color: Z.p600, fontFamily: SERIF, fontSize: 14, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
                   ?
@@ -179,70 +173,78 @@ export function Detail({
               </button>
             ))}
           </div>
-          {!loggedIn && (
-            <div style={{ fontFamily: SANS, fontSize: 12, color: Z.ink3, textAlign: 'center', marginTop: 10 }}>
-              미리보기는 무료 · 전체 풀이는 가입 후 바로 열려요
-            </div>
-          )}
         </div>
 
-        {/* chat */}
-        {msgs.length > 0 && (
-          <div ref={scrollRef} style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            {msgs.map((m, i) => (
+        {/* AI 채팅 메시지 */}
+        {messages.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: Z.ink, padding: '4px 0' }}>AI 해석 대화</div>
+            {messages.map((m) => (
               <div
-                key={i}
+                key={m.id}
                 style={{
-                  alignSelf: m.me ? 'flex-end' : 'flex-start',
-                  maxWidth: '82%',
-                  background: m.me ? `linear-gradient(180deg,${Z.p600},${Z.p700})` : Z.white,
-                  color: m.me ? '#fff' : Z.ink,
-                  border: m.me ? 'none' : `1px solid ${Z.line}`,
-                  borderRadius: m.me ? '16px 16px 5px 16px' : '16px 16px 16px 5px',
+                  alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '88%',
+                  background: m.role === 'user' ? `linear-gradient(180deg,${Z.p600},${Z.p700})` : Z.white,
+                  color: m.role === 'user' ? '#fff' : Z.ink,
+                  border: m.role === 'user' ? 'none' : `1px solid ${Z.line}`,
+                  borderRadius: m.role === 'user' ? '16px 16px 5px 16px' : '16px 16px 16px 5px',
                   padding: '11px 14px',
-                  fontFamily: SANS,
-                  fontSize: 13.5,
-                  lineHeight: 1.5,
+                  fontFamily: SANS, fontSize: 13.5, lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
                 }}
               >
-                {m.t}
+                {m.content}
               </div>
             ))}
+            {isLoading && (
+              <div style={{
+                alignSelf: 'flex-start', background: Z.white, border: `1px solid ${Z.line}`,
+                borderRadius: '16px 16px 16px 5px', padding: '11px 16px',
+                fontFamily: SANS, fontSize: 13, color: Z.ink3,
+              }}>
+                해석 중…
+              </div>
+            )}
           </div>
         )}
-        <div style={{ display: 'flex', gap: 9, alignItems: 'center', background: Z.white, border: `1.5px solid ${Z.p100}`, borderRadius: 16, padding: '8px 8px 8px 14px' }}>
+      </div>
+
+      {/* sticky 채팅 입력 */}
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          padding: '10px 14px max(16px, env(safe-area-inset-bottom))',
+          background: `linear-gradient(to top, ${Z.cream} 78%, transparent)`,
+          display: 'flex', gap: 9, alignItems: 'center',
+        }}
+      >
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: Z.white, border: `1.5px solid ${Z.p100}`, borderRadius: 16, padding: '8px 8px 8px 14px' }}>
           <input
-            value={txt}
-            onChange={(e) => setTxt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onSend();
-            }}
-            placeholder="이 자리에 대해 더 물어보기…"
+            value={input}
+            onChange={handleInputChange}
+            placeholder={`${a.ko}에 대해 AI에게 물어보기…`}
+            disabled={isLoading}
             style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: SANS, fontSize: 14, color: Z.ink }}
           />
           <button
-            onClick={onSend}
+            type="submit"
+            disabled={isLoading || !input.trim()}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              border: 'none',
-              cursor: 'pointer',
-              background: `linear-gradient(180deg,${Z.p500},${Z.p700})`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
+              width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: 'pointer',
+              background: isLoading || !input.trim() ? Z.line : `linear-gradient(180deg,${Z.p500},${Z.p700})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24">
-              <path d="M2 8h10M8 3l5 5-5 5" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 8h10M8 3l5 5-5 5" stroke={isLoading || !input.trim() ? Z.ink3 : '#fff'} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
         </div>
-      </div>
+      </form>
 
-      <QASheet openQ={openQ} loggedIn={loggedIn} onClose={() => setOpenQ(null)} onUnlock={() => nav.requireLogin('ai', () => {})} />
+      <QASheet openQ={openQ} loggedIn={true} onClose={() => setOpenQ(null)} onUnlock={() => {}} />
       <ShareSheet open={share} onClose={() => setShare(false)} showToast={showToast} />
       <Toast msg={toast} />
     </div>
