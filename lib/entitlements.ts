@@ -18,7 +18,7 @@ const CONFIG: Record<Plan, Entitlements> = {
     model: "haiku",
     compatibilityPerMonth: 1,
     premiumUnlock: false,
-    maxCharts: 3,
+    maxCharts: -1,
   },
   PREMIUM: {
     plan: "PREMIUM",
