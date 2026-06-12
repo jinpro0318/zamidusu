@@ -43,8 +43,10 @@ export interface Area {
   c: number;
   /** grid row (1–4) on the 4×4 plate */
   r: number;
-  /** stars seated in this palace */
+  /** major stars (主星) seated in this palace, hanja */
   stars: string[];
+  /** auxiliary stars (보조성: 육길·육살·주요 잡성), Korean names */
+  subStars?: string[];
   /** brightness of the lead star */
   br: BrightnessKey;
   /** one-line plain-Korean summary */

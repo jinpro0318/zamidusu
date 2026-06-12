@@ -2,6 +2,7 @@
 
 // screens/Input.tsx — birth info form
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { PrimaryBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput, TapField, PickerSheet } from '@/components/ziwei/common';
@@ -16,6 +17,7 @@ interface PickerCfg {
 }
 
 export function Input({ nav }: { nav: Nav }) {
+  const router = useRouter();
   const TIMES = [
     '子時 (23:00~01:00)',
     '丑時 (01:00~03:00)',
@@ -110,9 +112,10 @@ export function Input({ nav }: { nav: Nav }) {
       }
 
       // 이동에 성공하면 submitting 해제는 페이지 언마운트가 처리.
+      // nav.reset 호출 금지: useNav에 chartId가 없어 routeFor가 "/"로 폴백,
+      // 아래 이동과 경합해 결과 페이지에서 홈으로 튕기는 버그가 있었음.
       shouldReleaseSubmitting = false;
-      nav.reset('result');
-      window.location.assign(`/chart/${data.id}`);
+      router.push(`/chart/${data.id}`);
     } catch (e: any) {
       toast.error(e?.message ?? '명반 생성 실패');
     } finally {

@@ -14,6 +14,8 @@ const NAME_MAP: Record<string, { cn: string; h: string; ko: string }> = {
   질액궁: { cn: "疾厄宮", h: "疾", ko: "건강·체질" },
   천이궁: { cn: "遷移宮", h: "遷", ko: "이동·해외" },
   교우궁: { cn: "奴僕宮", h: "友", ko: "대인관계" },
+  // iztro ko-KR 로케일이 교우궁을 "노복"으로 반환하는 케이스 별칭
+  노복궁: { cn: "奴僕宮", h: "友", ko: "대인관계" },
   관록궁: { cn: "官祿宮", h: "官", ko: "직업·커리어" },
   전택궁: { cn: "田宅宮", h: "宅", ko: "집·가정" },
   복덕궁: { cn: "福德宮", h: "福", ko: "복·취미" },
@@ -58,11 +60,19 @@ function defaultArea(name: string): { cn: string; h: string; ko: string } {
   return NAME_MAP[name] ?? NAME_MAP[name + "궁"] ?? { cn: name, h: name[0] ?? "?", ko: name };
 }
 
+// adjectiveStars(잡성) 중 카드에 노출할 주요 별만 선별 (경쟁사 노출 기준 참고)
+const NOTABLE_ADJECTIVE = new Set(["천형", "천요", "홍란", "천희"]);
+
 export function toAreas(payload: AstrolabePayload): Area[] {
   return payload.palaces.map((p): Area => {
     const meta = defaultArea(p.name);
     const pos = POSITION[meta.cn] ?? { c: 1, r: 1 };
     const stars = p.majorStars.map((s) => STAR_HANJA[s.name] ?? s.name);
+    // 보조성: 육길·육살성(minorStars) 전부 + 주요 잡성. 구버전 payload에는 없을 수 있어 방어.
+    const subStars = [
+      ...(p.minorStars ?? []).map((s) => s.name),
+      ...(p.adjectiveStars ?? []).filter((s) => NOTABLE_ADJECTIVE.has(s.name)).map((s) => s.name),
+    ];
     const leadStar = p.majorStars[0];
     const br: BrightnessKey =
       (leadStar?.brightness && BRIGHTNESS_MAP[leadStar.brightness]) || "平";
@@ -74,6 +84,7 @@ export function toAreas(payload: AstrolabePayload): Area[] {
       c: pos.c,
       r: pos.r,
       stars,
+      subStars,
       br,
       line: lineFor(meta.cn, leadStar?.name),
       sel: p.name.includes("명"),

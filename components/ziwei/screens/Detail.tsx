@@ -1,16 +1,71 @@
 'use client';
 
-// screens/Detail.tsx — palace detail with auto-triggered full AI interpretation
-import { useRef, useEffect, useState } from 'react';
+// screens/Detail.tsx — palace detail: 즉답 요약 → 구조화 AI 본문 → 대화형 심화
+import { useRef, useEffect, useState, type ReactNode } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
+import { AiText } from '@/components/ai/AiText';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
+import { QUESTIONS } from '@/data/questions';
+import { STAR_MEANINGS, STAR_NAME_RE } from '@/data/starMeanings';
+import { starKo, starWithHanja } from '@/lib/star-names';
 import type { Area, Nav, NavParams } from '@/lib/ziwei-types';
+
+const SECTION_TITLES = ['성향', '강점', '주의할 점', '조언'] as const;
+
+// AI 본문을 [성향]/[강점]/[주의할 점]/[조언] 마커로 분리. 마커가 2개 미만이면 null(통짜 폴백).
+function parseSections(text: string): { title: string; body: string }[] | null {
+  const re = /\[(성향|강점|주의할 점|조언)\]/g;
+  const found = [...text.matchAll(re)];
+  if (found.length < 2) return null;
+  return found.map((m, i) => ({
+    title: m[1],
+    body: text.slice((m.index ?? 0) + m[0].length, found[i + 1]?.index ?? text.length).trim(),
+  }));
+}
+
+// 마크다운 잔여 기호 정리 (프롬프트에서 금지하지만 안전망)
+function cleanMd(text: string): string {
+  return text
+    .replace(/\*\*/g, '')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/^\s*[-*]\s+/gm, '• ');
+}
+
+// 본문 속 별 이름을 탭 가능한 골드 스팬으로 변환
+function renderWithStars(text: string, onTap: (star: string) => void): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const re = new RegExp(STAR_NAME_RE.source, 'g');
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    const star = m[1];
+    nodes.push(
+      <button
+        key={k++}
+        onClick={() => onTap(star)}
+        style={{
+          border: 'none', background: 'rgba(199,162,63,0.13)', cursor: 'pointer',
+          borderRadius: 6, padding: '0 4px', margin: 0,
+          font: 'inherit', color: '#9C7C1E', fontWeight: 700,
+          borderBottom: '1.5px dotted rgba(199,162,63,0.7)',
+        }}
+      >
+        {m[0]}
+      </button>,
+    );
+    last = m.index + m[0].length;
+  }
+  nodes.push(text.slice(last));
+  return nodes;
+}
 
 export function Detail({
   nav, params, loggedIn, areas, chartId,
@@ -28,19 +83,31 @@ export function Detail({
 
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
+  // 탭해서 펼친 별: { star, sectionIdx } — 해당 섹션 카드 아래에 의미 박스 표시
+  const [openStar, setOpenStar] = useState<{ star: string; section: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const triggered = useRef(false);
 
-  // 자동 트리거할 초기 프롬프트 — AI 응답만 표시하고 이 메시지는 숨김
-  const initPrompt = `${a.ko}(${a.cn})에 대한 자미두수 풀이를 상세하게 해주세요. 이 자리에 위치한 별들의 특성과 밝기, 별들 사이의 상호작용, 그리고 제 삶의 이 영역에서 어떤 경향과 가능성이 보이는지 단계적으로 풀어주세요. 마지막에는 이 명반을 가진 사람이 실생활에서 어떻게 활용하면 좋은지 구체적인 조언도 해주세요.`;
+  // ── 1단: 즉답 요약 (결정적 — AI와 무관하게 항상 표시) ──
+  const majorKoNames = a.stars.map(starKo);
+  const kw: string[] = [];
+  for (const s of majorKoNames) kw.push(...(STAR_MEANINGS[s]?.keywords ?? []));
+  for (const s of a.subStars ?? []) {
+    if (kw.length >= 5) break;
+    kw.push(...(STAR_MEANINGS[s]?.keywords ?? []).slice(0, 1));
+  }
+  const keywords = [...new Set(kw)].slice(0, 5);
 
-  const { messages, input, handleInputChange, handleSubmit, status, append } = useChat({
+  // ── 2단: 구조화 AI 본문 ──
+  const initPrompt = `${a.ko}(${a.cn})에 대한 자미두수 풀이를 작성해주세요. 반드시 아래 4개 섹션으로 나누고, 각 섹션은 대괄호 머리글로 시작하세요: [성향] [강점] [주의할 점] [조언]. 머리글 외의 제목·마크다운 기호는 쓰지 마세요. 이 궁에 자리한 별들(주성과 보조성)의 특성과 상호작용, 밝기를 근거로 들어 구체적으로 풀어주시고, [조언]에는 실생활에서 바로 적용할 수 있는 팁을 담아주세요.`;
+
+  const { messages, input, handleInputChange, handleSubmit, status, append, error, reload } = useChat({
     api: '/api/ai/chat',
     body: { chartId, palaceKey: key },
+    onError: (e) => console.error('[Detail AI] 풀이 호출 실패', { palaceKey: key, chartId, error: e }),
   });
   const isLoading = status === 'streaming' || status === 'submitted';
 
-  // 페이지 진입 시 자동으로 풀이 요청
   useEffect(() => {
     if (triggered.current || !chartId) return;
     triggered.current = true;
@@ -48,28 +115,75 @@ export function Detail({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartId]);
 
-  // 새 메시지 스트리밍 시 하단 스크롤
+  // 새 사용자 질문 전송 시에만 하단 스크롤 (본문 스트리밍 중에는 읽기 방해 금지)
   useEffect(() => {
-    if (scrollRef.current) {
+    if (messages.at(-1)?.role === 'user' && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
 
-  // 초기 자동 요청 메시지는 UI에서 숨김 (사용자에게 보여줄 필요 없음)
   const visibleMessages = messages.filter((m) => m.content !== initPrompt);
+  const assistantMsgs = visibleMessages.filter((m) => m.role === 'assistant');
+  const mainAnswer = assistantMsgs[0]?.content ?? '';
+  const hasAnswer = mainAnswer.trim().length > 0;
+  const requested = messages.length > 0;
+  const aiFailed = !isLoading && requested && !hasAnswer;
+
+  useEffect(() => {
+    if (!isLoading && requested && !hasAnswer && !error && messages.length > 0) {
+      console.error('[Detail AI] 빈 응답 수신 (스트림 비정상 종료 추정)', { palaceKey: key, chartId });
+    }
+  }, [isLoading, requested, hasAnswer, error, messages.length, key, chartId]);
+
+  const retry = () => {
+    console.warn('[Detail AI] 사용자 재시도', { palaceKey: key, chartId });
+    reload();
+  };
+
+  const sections = hasAnswer ? parseSections(cleanMd(mainAnswer)) : null;
+
+  // 첫 assistant 응답 이후의 후속 대화 (사용자 질문 + 추가 답변)
+  const firstAssistantIdx = visibleMessages.findIndex((m) => m.role === 'assistant');
+  const followUps = firstAssistantIdx >= 0 ? visibleMessages.slice(firstAssistantIdx + 1) : [];
+
+  // ── 4단(입력): 추천 질문 칩 ──
+  const suggested = [...new Set([...(QUESTIONS[key]?.map((q) => q.q).slice(0, 2) ?? []), '올해 조심할 점은?'])];
+  const askSuggested = (q: string) => {
+    if (isLoading) return;
+    append({ role: 'user', content: q });
+  };
+
+  const tapStar = (section: number) => (star: string) =>
+    setOpenStar((cur) => (cur?.star === star && cur.section === section ? null : { star, section }));
+
+  const starInfoBox = (star: string) => {
+    const meaning = STAR_MEANINGS[star];
+    if (!meaning) return null;
+    return (
+      <div
+        style={{
+          marginTop: 10, background: Z.p50, border: `1px solid ${Z.p100}`,
+          borderRadius: 12, padding: '11px 13px',
+        }}
+      >
+        <div style={{ fontFamily: SERIF, fontSize: 13.5, fontWeight: 700, color: Z.p600, marginBottom: 4 }}>
+          ★ {star}{meaning.hanja ? `(${meaning.hanja})` : ''}
+        </div>
+        <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink, lineHeight: 1.6 }}>{meaning.desc}</div>
+      </div>
+    );
+  };
 
   return (
     <div style={{ minHeight: '100%', background: Z.cream, display: 'flex', flexDirection: 'column' }}>
       {/* 헤더 */}
       <div
         style={{
-          position: 'relative',
-          overflow: 'hidden',
+          position: 'relative', overflow: 'hidden',
           background: `linear-gradient(160deg, ${Z.p900}, ${Z.p800})`,
           padding: 'calc(env(safe-area-inset-top) + 16px) 14px 22px',
-          borderBottomLeftRadius: 24,
-          borderBottomRightRadius: 24,
-          flexShrink: 0,
+          borderBottomLeftRadius: 24, borderBottomRightRadius: 24, flexShrink: 0,
         }}
       >
         <StarField count={20} gold={3} seed={12} />
@@ -97,19 +211,42 @@ export function Detail({
             <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 800, color: '#fff', lineHeight: 1.05 }}>{a.ko}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 6, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: SERIF, fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>{a.cn}</span>
-              {a.stars.map((s) => (
+              {a.stars.length > 0 ? (
+                a.stars.map((s) => (
+                  <span
+                    key={s}
+                    style={{
+                      fontFamily: SERIF, fontSize: 12.5, color: Z.goldBright,
+                      background: 'rgba(227,195,107,0.15)', border: '1px solid rgba(227,195,107,0.32)',
+                      borderRadius: 8, padding: '2px 8px', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    ★{starWithHanja(s)}
+                  </span>
+                ))
+              ) : (
+                <span
+                  style={{
+                    fontFamily: SERIF, fontSize: 12.5, color: 'rgba(255,255,255,0.7)',
+                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)',
+                    borderRadius: 8, padding: '2px 8px', whiteSpace: 'nowrap',
+                  }}
+                >
+                  空宮
+                </span>
+              )}
+              {(a.subStars ?? []).map((s) => (
                 <span
                   key={s}
                   style={{
-                    fontFamily: SERIF, fontSize: 12.5, color: Z.goldBright,
-                    background: 'rgba(227,195,107,0.15)', border: '1px solid rgba(227,195,107,0.32)',
-                    borderRadius: 8, padding: '2px 8px',
+                    fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.75)',
+                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)',
+                    borderRadius: 8, padding: '2px 7px', whiteSpace: 'nowrap',
                   }}
                 >
                   {s}
                 </span>
               ))}
-              <Brightness b={a.br} />
             </div>
           </div>
         </div>
@@ -118,15 +255,38 @@ export function Detail({
       {/* 스크롤 본문 */}
       <div
         ref={scrollRef}
-        style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 130px', display: 'flex', flexDirection: 'column', gap: 16 }}
+        style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 170px', display: 'flex', flexDirection: 'column', gap: 16 }}
       >
-        {/* 이 자리는? — 컨텍스트 카드 */}
-        <div style={{ background: Z.p50, border: `1px solid ${Z.p100}`, borderRadius: 16, padding: '13px 16px' }}>
-          <div style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: Z.p600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>이 자리는?</div>
-          <div style={{ fontFamily: SANS, fontSize: 14, color: Z.ink, lineHeight: 1.55 }}>{info.about}</div>
+        {/* ── 1단: 즉답 요약 (항상 표시) ── */}
+        <div
+          style={{
+            background: `linear-gradient(170deg, ${Z.p50}, #fff)`,
+            border: `1.5px solid ${Z.p100}`, borderRadius: 16, padding: '14px 16px',
+          }}
+        >
+          <div style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: Z.p600, marginBottom: 8, letterSpacing: '0.04em' }}>한눈에 보기</div>
+          {keywords.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 9 }}>
+              {keywords.map((k2) => (
+                <span
+                  key={k2}
+                  style={{
+                    fontFamily: SANS, fontSize: 12.5, fontWeight: 700,
+                    color: '#9C7C1E', background: 'rgba(199,162,63,0.13)',
+                    border: '1px solid rgba(199,162,63,0.4)',
+                    borderRadius: 20, padding: '4px 11px',
+                  }}
+                >
+                  #{k2}
+                </span>
+              ))}
+            </div>
+          )}
+          <div style={{ fontFamily: SANS, fontSize: 14.5, color: Z.ink, lineHeight: 1.55, fontWeight: 600 }}>{a.line}</div>
+          <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, lineHeight: 1.55, marginTop: 5 }}>{info.about}</div>
         </div>
 
-        {/* AI 풀이 섹션 */}
+        {/* ── 2단: 구조화 AI 본문 ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 20, height: 20, borderRadius: '50%', background: `linear-gradient(180deg,${Z.p500},${Z.p700})`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -134,34 +294,45 @@ export function Detail({
                 <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" fill="#fff" />
               </svg>
             </span>
-            <span style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: Z.ink }}>
-              자미두수 AI 풀이
-            </span>
-            {isLoading && (
+            <span style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: Z.ink }}>자미두수 AI 풀이</span>
+            {isLoading && !hasAnswer && (
               <span style={{ fontFamily: SANS, fontSize: 12, color: Z.p600, fontWeight: 600 }}>생성 중…</span>
             )}
           </div>
 
-          {/* AI 응답 — 스트리밍 */}
-          {visibleMessages.filter((m) => m.role === 'assistant').map((m) => (
+          {/* 성공: 섹션 카드 (마커 파싱 실패 시 통짜 폴백) */}
+          {hasAnswer && sections && sections.map((sec, i) => (
             <div
-              key={m.id}
-              style={{
-                background: Z.white, border: `1px solid ${Z.line}`,
-                borderRadius: 18, padding: '16px 18px',
-                fontFamily: SANS, fontSize: 14.5, color: Z.ink, lineHeight: 1.75,
-                whiteSpace: 'pre-wrap',
-              }}
+              key={`${sec.title}-${i}`}
+              style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '14px 16px' }}
             >
-              {m.content}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`, display: 'inline-block' }} />
+                <span style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: Z.ink }}>{sec.title}</span>
+              </div>
+              <div style={{ fontFamily: SANS, fontSize: 14, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+                {renderWithStars(sec.body, tapStar(i))}
+              </div>
+              {openStar?.section === i && starInfoBox(openStar.star)}
             </div>
           ))}
+          {hasAnswer && !sections && (
+            <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '16px 18px', fontFamily: SANS, fontSize: 14.5, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+              {renderWithStars(cleanMd(mainAnswer), tapStar(-1))}
+              {openStar?.section === -1 && starInfoBox(openStar.star)}
+            </div>
+          )}
+          {hasAnswer && (
+            <div style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink3, textAlign: 'center' }}>
+              밑줄 친 별 이름을 탭하면 그 별의 의미를 볼 수 있어요
+            </div>
+          )}
 
-          {/* 로딩 중이고 아직 응답이 없을 때 */}
-          {isLoading && visibleMessages.filter((m) => m.role === 'assistant').length === 0 && (
+          {/* 로딩 */}
+          {isLoading && !hasAnswer && (
             <div style={{
               background: Z.white, border: `1px solid ${Z.line}`,
-              borderRadius: 18, padding: '16px 18px',
+              borderRadius: 16, padding: '16px 18px',
               fontFamily: SANS, fontSize: 14, color: Z.ink3, lineHeight: 1.6,
               display: 'flex', alignItems: 'center', gap: 10,
             }}>
@@ -170,8 +341,7 @@ export function Detail({
                   <span
                     key={i}
                     style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      background: Z.p500,
+                      width: 7, height: 7, borderRadius: '50%', background: Z.p500,
                       animation: `zmds-dot 1.2s ease-in-out ${i * 0.2}s infinite`,
                       display: 'inline-block',
                     }}
@@ -181,14 +351,54 @@ export function Detail({
               <span>{a.ko} 풀이를 생성하고 있어요</span>
             </div>
           )}
+
+          {/* 실패 */}
+          {aiFailed && (
+            <div
+              style={{
+                background: Z.white, border: `1.5px solid ${Z.p100}`,
+                borderRadius: 18, padding: '20px 18px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+              }}
+            >
+              <span
+                style={{
+                  width: 38, height: 38, borderRadius: '50%',
+                  background: Z.p50, border: `1px solid ${Z.p100}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 8v5M12 16.5v.5" stroke={Z.p600} strokeWidth="2.2" strokeLinecap="round" />
+                  <circle cx="12" cy="12" r="9" stroke={Z.p600} strokeWidth="2" />
+                </svg>
+              </span>
+              <div style={{ fontFamily: SANS, fontSize: 14, color: Z.ink, textAlign: 'center', lineHeight: 1.55 }}>
+                지금 풀이를 불러오지 못했어요.
+                <br />
+                잠시 후 다시 시도해 주세요.
+              </div>
+              <button
+                onClick={retry}
+                style={{
+                  border: 'none', cursor: 'pointer', borderRadius: 12,
+                  padding: '10px 22px', fontFamily: SANS, fontSize: 14, fontWeight: 700,
+                  color: '#fff', background: `linear-gradient(180deg,${Z.p500},${Z.p700})`,
+                  boxShadow: '0 4px 14px rgba(94,71,160,0.3)',
+                }}
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* 추가 질문 메시지들 (사용자 질문 + 후속 AI 응답) */}
-        {visibleMessages.length > 1 && (
+        {/* ── 3단: 대화형 심화 (후속 질문) ── */}
+        {followUps.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
             <div style={{ height: 1, background: Z.line }} />
             <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: Z.ink2 }}>추가 질문</div>
-            {visibleMessages.slice(1).map((m) => (
+            {followUps.map((m) => (
               <div
                 key={m.id}
                 style={{
@@ -203,15 +413,14 @@ export function Detail({
                   whiteSpace: 'pre-wrap',
                 }}
               >
-                {m.content}
+                {m.role === 'user' ? m.content : <AiText text={m.content} />}
               </div>
             ))}
-            {isLoading && visibleMessages.at(-1)?.role === 'user' && (
+            {isLoading && followUps.at(-1)?.role === 'user' && (
               <div style={{
                 alignSelf: 'flex-start',
                 background: Z.white, border: `1px solid ${Z.line}`,
                 borderRadius: '18px 18px 18px 5px', padding: '12px 16px',
-                fontFamily: SANS, fontSize: 13, color: Z.ink3,
                 display: 'flex', gap: 4, alignItems: 'center',
               }}>
                 {[0, 1, 2].map((i) => (
@@ -230,7 +439,6 @@ export function Detail({
         )}
       </div>
 
-      {/* 점 애니메이션 keyframe */}
       <style>{`
         @keyframes zmds-dot {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
@@ -238,41 +446,67 @@ export function Detail({
         }
       `}</style>
 
-      {/* sticky 채팅 입력 */}
-      <form
-        onSubmit={handleSubmit}
+      {/* ── 4단: 추천 질문 칩 + 채팅 입력 (sticky) ── */}
+      <div
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          padding: '10px 16px max(18px, env(safe-area-inset-bottom))',
-          background: `linear-gradient(to top, ${Z.cream} 75%, transparent)`,
+          padding: '8px 0 max(18px, env(safe-area-inset-bottom))',
+          background: `linear-gradient(to top, ${Z.cream} 82%, transparent)`,
         }}
       >
-        <div style={{ display: 'flex', gap: 9, alignItems: 'center', background: Z.white, border: `1.5px solid ${Z.p100}`, borderRadius: 18, padding: '9px 9px 9px 16px', boxShadow: '0 4px 16px rgba(36,26,61,0.08)' }}>
-          <input
-            value={input}
-            onChange={handleInputChange}
-            placeholder="더 궁금한 점을 물어보세요…"
-            disabled={isLoading}
-            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: SANS, fontSize: 14, color: Z.ink }}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            style={{
-              width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: isLoading || !input.trim() ? 'default' : 'pointer',
-              background: isLoading || !input.trim() ? Z.line : `linear-gradient(180deg,${Z.p500},${Z.p700})`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              transition: 'background 0.2s',
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24">
-              <path d="M5 12h14M13 6l6 6-6 6" stroke={isLoading || !input.trim() ? Z.ink3 : '#fff'} strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
+        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '0 16px 9px', WebkitOverflowScrolling: 'touch' }}>
+          {suggested.map((q) => (
+            <button
+              key={q}
+              onClick={() => askSuggested(q)}
+              disabled={isLoading}
+              style={{
+                flexShrink: 0, cursor: isLoading ? 'default' : 'pointer',
+                fontFamily: SANS, fontSize: 12.5, fontWeight: 600,
+                color: isLoading ? Z.ink3 : Z.p600,
+                background: Z.white, border: `1.5px solid ${Z.p100}`,
+                borderRadius: 18, padding: '7px 13px',
+                boxShadow: '0 2px 8px rgba(36,26,61,0.06)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {q}
+            </button>
+          ))}
         </div>
-      </form>
+        <form onSubmit={handleSubmit} style={{ padding: '0 16px' }}>
+          <div style={{ display: 'flex', gap: 9, alignItems: 'center', background: Z.white, border: `1.5px solid ${Z.p100}`, borderRadius: 18, padding: '9px 9px 9px 16px', boxShadow: '0 4px 16px rgba(36,26,61,0.08)' }}>
+            <input
+              value={input}
+              onChange={handleInputChange}
+              placeholder="더 궁금한 점을 물어보세요…"
+              disabled={isLoading}
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: SANS, fontSize: 14, color: Z.ink }}
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              style={{
+                width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: isLoading || !input.trim() ? 'default' : 'pointer',
+                background: isLoading || !input.trim() ? Z.line : `linear-gradient(180deg,${Z.p500},${Z.p700})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                transition: 'background 0.2s',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke={isLoading || !input.trim() ? Z.ink3 : '#fff'} strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
 
-      <ShareSheet open={share} onClose={() => setShare(false)} showToast={showToast} />
+      <ShareSheet
+        open={share}
+        onClose={() => setShare(false)}
+        showToast={showToast}
+        soulStars={allAreas.find((x) => x.cn === '命宮')?.stars}
+      />
       <Toast msg={toast} />
     </div>
   );

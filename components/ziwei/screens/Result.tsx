@@ -12,6 +12,7 @@ import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
+import { starWithHanja } from '@/lib/star-names';
 import type { Area, GateState, Nav } from '@/lib/ziwei-types';
 
 interface ResultProps {
@@ -67,122 +68,88 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
       >
         <StarField count={40} gold={5} seed={9} />
 
-        {/* 헤더 영역 */}
-        <div style={{ position: 'relative', padding: 'calc(env(safe-area-inset-top) + 28px) 20px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'rgba(255,255,255,0.55)' }}>{birthLabel ?? '1990.05.20 · 양력 · 子時 · 男'}</div>
-              <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: '#fff', marginTop: 3 }}>
-                {subjectName ?? '내 명반'} <span style={{ color: Z.goldBright }}>命盤</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => nav.requireLogin('save', () => showToast('명반을 저장했어요'))}
-                style={{
-                  fontFamily: SANS, fontSize: 12.5, color: '#fff', fontWeight: 600,
-                  border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.08)',
-                  borderRadius: 18, padding: '7px 13px', cursor: 'pointer',
-                }}
-              >
-                저장
-              </button>
-              <button
-                onClick={() => nav.requireLogin('share', () => setShare(true))}
-                style={{
-                  fontFamily: SANS, fontSize: 12.5, color: Z.ink, fontWeight: 700,
-                  border: 'none', background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
-                  borderRadius: 18, padding: '7px 13px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  boxShadow: '0 4px 12px rgba(199,162,63,0.35)',
-                }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 8a3 3 0 10-2.8-4M6 15a3 3 0 100-6 3 3 0 000 6zm12 7a3 3 0 10-2.8-4M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" stroke={Z.ink} strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                공유
-              </button>
-            </div>
-          </div>
-
-          {/* 명궁 요약 카드 */}
-          <Link
-            href={nav.hrefFor('detail', { key: '命宮' })}
-            onClick={(e) => guardDetail(e, nav.hrefFor('detail', { key: '命宮' }))}
-            aria-label={`내 명궁 ${soul.cn} 상세 보기`}
+        {/* 상단 액션 바: 저장·공유만 우측 정렬 */}
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end', gap: 8, padding: 'calc(env(safe-area-inset-top) + 14px) 18px 0' }}>
+          <button
+            onClick={() => nav.requireLogin('save', () => showToast('명반을 저장했어요'))}
             style={{
-              marginTop: 16, display: 'flex', gap: 13, alignItems: 'center',
-              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(227,195,107,0.22)',
-              borderRadius: 16, padding: 13, color: 'inherit', textDecoration: 'none',
+              fontFamily: SANS, fontSize: 12.5, color: '#fff', fontWeight: 600,
+              border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.08)',
+              borderRadius: 18, padding: '7px 13px', cursor: 'pointer',
             }}
           >
-            <AreaIcon h={soul.h} size={50} sel />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: SANS, fontSize: 12, color: Z.goldBright, fontWeight: 600 }}>나의 명궁 · {soul.cn}</div>
-              <div style={{ fontFamily: SERIF, fontSize: 16, fontWeight: 700, color: '#fff', margin: '1px 0 3px' }}>
-                {soul.stars.join(' · ')} <Brightness b={soul.br} />
-              </div>
-              <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4 }}>{soul.line}</div>
-            </div>
-            <svg width="8" height="14" viewBox="0 0 8 14" aria-hidden>
-              <path d="M1 1l6 6-6 6" stroke="rgba(255,255,255,0.5)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            저장
+          </button>
+          <button
+            onClick={() => nav.requireLogin('share', () => setShare(true))}
+            style={{
+              fontFamily: SANS, fontSize: 12.5, color: Z.ink, fontWeight: 700,
+              border: 'none', background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
+              borderRadius: 18, padding: '7px 13px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 5,
+              boxShadow: '0 4px 12px rgba(199,162,63,0.35)',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M18 8a3 3 0 10-2.8-4M6 15a3 3 0 100-6 3 3 0 000 6zm12 7a3 3 0 10-2.8-4M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" stroke={Z.ink} strokeWidth="2" strokeLinecap="round" />
             </svg>
-          </Link>
+            공유
+          </button>
         </div>
 
-        {/* 구분선 */}
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '0 18px' }} />
-
         {/* 명반 차트 영역 */}
-        <div style={{ position: 'relative', padding: '18px 18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 700, color: '#fff' }}>
-              명반 차트 <span style={{ color: Z.goldBright }}>命盤</span>
-            </div>
-            <div style={{ fontFamily: SANS, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{birthLabel ?? ''}</div>
+        <div style={{ position: 'relative', padding: '8px 18px 16px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+          <div style={{ textAlign: 'center', fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: '#fff' }}>
+            내 명반 차트
           </div>
           <Plate selKey={plateSel} onSel={setPlateSel} easy={true} areas={allAreas} />
-          <div
+          {/* 선택 궁 요약 카드 — 탭하면 상세 풀이로 이동 */}
+          <Link
+            href={nav.hrefFor('detail', { key: plateSel })}
+            onClick={(e) => guardDetail(e, nav.hrefFor('detail', { key: plateSel }))}
+            aria-label={`${plateCur.ko} (${plateCur.cn}) 상세 풀이 보기`}
             style={{
               background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(227,195,107,0.22)',
-              borderRadius: 14, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'center',
+              borderRadius: 14, padding: '11px 14px', display: 'flex', gap: 12, alignItems: 'center',
+              color: 'inherit', textDecoration: 'none',
             }}
           >
-            <AreaIcon h={plateCur.h} size={44} sel />
+            <AreaIcon h={plateCur.h} size={42} sel />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <span style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: '#fff' }}>{plateCur.ko}</span>
                 <span style={{ fontFamily: SERIF, fontSize: 13, color: Z.p300 }}>{plateCur.cn}</span>
                 <Brightness b={plateCur.br} />
               </div>
-              <div style={{ fontFamily: SERIF, fontSize: 13, color: Z.goldBright, margin: '3px 0' }}>{plateCur.stars.join(' · ')}</div>
+              <div style={{ fontFamily: SERIF, fontSize: 13, color: Z.goldBright, margin: '2px 0' }}>
+                {plateCur.stars.length > 0
+                  ? plateCur.stars.map((s) => `★${starWithHanja(s)}`).join(' · ')
+                  : '공궁(空宮)'}
+              </div>
+              {plateCur.subStars && plateCur.subStars.length > 0 && (
+                <div style={{ fontFamily: SANS, fontSize: 11.5, color: Z.p300, margin: '0 0 2px' }}>
+                  {plateCur.subStars.join(' · ')}
+                </div>
+              )}
               <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45 }}>{plateCur.line}</div>
             </div>
-          </div>
-          <Link
-            href={nav.hrefFor('detail', { key: plateSel })}
-            onClick={(e) => guardDetail(e, nav.hrefFor('detail', { key: plateSel }))}
-            aria-label={`${plateCur.ko} (${plateCur.cn}) 자세히 보기`}
-            style={{
-              width: '100%', cursor: 'pointer', borderRadius: 14, padding: '14px',
-              fontFamily: SANS, fontSize: 15.5, fontWeight: 700, color: Z.ink,
-              background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
-              boxShadow: '0 6px 18px rgba(199,162,63,0.30)', textAlign: 'center', textDecoration: 'none',
-              display: 'block',
-            }}
-          >
-            자세히 보기
+            <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }} aria-hidden>
+              <path d="M1 1l6 6-6 6" stroke="rgba(255,255,255,0.5)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </Link>
+          {/* 명반 일시 — 차트 하단 중앙 */}
+          <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>
+            {subjectName ? `${subjectName} · ` : ''}{birthLabel ?? ''}
+          </div>
           <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-            각 궁을 눌러 선택 · 버튼을 눌러 상세 풀이
+            각 궁을 눌러 선택 · 카드를 눌러 상세 풀이
           </div>
 
           {/* 스크롤 안내 — 다크 패널 하단에 배치해 확실히 보이도록 */}
           <div
             aria-hidden
             style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-              paddingTop: 6,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               animation: 'zmds-scroll-hint 1.6s ease-in-out infinite',
             }}
           >
@@ -246,7 +213,12 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
         </button>
       </div>
 
-      <ShareSheet open={share} onClose={() => setShare(false)} showToast={showToast} />
+      <ShareSheet
+        open={share}
+        onClose={() => setShare(false)}
+        showToast={showToast}
+        soulStars={allAreas.find((x) => x.cn === '命宮')?.stars}
+      />
       <LoginGate
         gate={gate}
         onClose={() => setGate(null)}

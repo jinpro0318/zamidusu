@@ -55,8 +55,21 @@ function IconBtn({
   );
 }
 
-export function ShareSheet({ open, onClose, showToast }: { open: boolean; onClose: () => void; showToast: ShowToast }) {
+export function ShareSheet({
+  open,
+  onClose,
+  showToast,
+  soulStars,
+}: {
+  open: boolean;
+  onClose: () => void;
+  showToast: ShowToast;
+  /** 실제 명반의 命宮 주성 (한자). 비어 있으면 空宮으로 표기. */
+  soulStars?: string[];
+}) {
   if (!open) return null;
+  // 명궁이 공궁이면 임의로 다른 궁의 별을 끌어오지 않고 空宮으로 표기한다.
+  const soulLabel = soulStars && soulStars.length > 0 ? soulStars.join('·') : '空宮';
   return (
     <div
       onClick={onClose}
@@ -118,7 +131,7 @@ export function ShareSheet({ open, onClose, showToast }: { open: boolean; onClos
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontFamily: SANS, fontSize: 14.5, fontWeight: 700, color: Z.ink }}>내 자미두수 명반</div>
-            <div style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 2 }}>명궁 紫微·天府 · 12 영역 해석</div>
+            <div style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 2 }}>명궁 {soulLabel} · 12 영역 해석</div>
             <div
               style={{
                 fontFamily: SANS,

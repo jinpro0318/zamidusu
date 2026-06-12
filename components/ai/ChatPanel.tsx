@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AiText } from "@/components/ai/AiText";
 import { cn } from "@/lib/utils";
 
 const SUGGESTED = [
@@ -58,7 +59,9 @@ export function ChatPanel({ chartId }: { chartId: string }) {
             <p className="text-[10px] gold-text mb-1 tracking-wider">
               {m.role === "user" ? "나" : "AI"}
             </p>
-            <div className="whitespace-pre-wrap leading-relaxed">{m.content}</div>
+            <div className="whitespace-pre-wrap leading-relaxed">
+              {m.role === "user" ? m.content : <AiText text={m.content} />}
+            </div>
           </div>
         ))}
 
