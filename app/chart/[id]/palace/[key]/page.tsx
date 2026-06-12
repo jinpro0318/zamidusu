@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getGuestUserId } from "@/lib/guest";
@@ -15,11 +15,10 @@ export default async function PalaceDetailPage({
 }) {
   const { id, key } = await params;
   const session = await auth();
-  // 궁 상세는 회원 전용 — 게스트는 로그인 후 이 페이지로 복귀
-  if (!session?.user) {
-    redirect(`/sign-in?callbackUrl=${encodeURIComponent(`/chart/${id}/palace/${key}`)}`);
-  }
-  const userId = (session.user as any).id as string;
+  const userId = session?.user
+    ? ((session.user as any).id as string)
+    : await getGuestUserId();
+  if (!userId) notFound();
 
   const chart = await db.chart.findFirst({ where: { id, userId } });
   if (!chart) notFound();
@@ -31,7 +30,7 @@ export default async function PalaceDetailPage({
       areas={areas}
       palaceKey={decodeURIComponent(key)}
       chartId={chart.id}
-      loggedIn={!!session?.user}
+      loggedIn={true}
     />
   );
 }

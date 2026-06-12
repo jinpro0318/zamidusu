@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
-import { AreaIcon, Brightness, StarField, Seg } from '@/components/ziwei/atoms';
+import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
@@ -30,7 +30,6 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
   const [plateSel, setPlateSel] = useState('命宮');
-  const [plateMode, setPlateMode] = useState<'쉬운 보기' | '전통 보기'>('쉬운 보기');
   const [gate, setGate] = useState<GateState | null>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
 
@@ -181,15 +180,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
           <div style={{ fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}>{birthLabel ?? ''}</div>
         </div>
         <div style={{ position: 'relative' }}>
-          <Seg
-            options={['쉬운 보기', '전통 보기']}
-            value={plateMode}
-            onChange={(v) => setPlateMode(v as '쉬운 보기' | '전통 보기')}
-            dark
-          />
-        </div>
-        <div style={{ position: 'relative' }}>
-          <Plate selKey={plateSel} onSel={setPlateSel} easy={plateMode === '쉬운 보기'} areas={allAreas} />
+          <Plate selKey={plateSel} onSel={setPlateSel} easy={true} areas={allAreas} />
         </div>
         <div
           style={{

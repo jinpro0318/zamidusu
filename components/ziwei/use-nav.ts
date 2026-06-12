@@ -34,20 +34,10 @@ export function useNav(currentChartId?: string): Nav {
   const router = useRouter();
 
   const requireLogin = useCallback(
-    async (reason: GateReason, cb?: () => void) => {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data } = await supabase.auth.getUser();
-        if (data.user) {
-          cb?.();
-          return;
-        }
-      } catch {
-        /* supabase 미설정 시 환경에서는 그냥 로그인 페이지로 */
-      }
-      router.push(`/sign-in?reason=${reason}`);
+    async (_reason: GateReason, cb?: () => void) => {
+      cb?.();
     },
-    [router],
+    [],
   );
 
   return useMemo<Nav>(
