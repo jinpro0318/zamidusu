@@ -3,7 +3,9 @@
 // AI 응답 텍스트 렌더러.
 // 1) 마크다운 기호(**, ##, - )가 섞여 와도 화면에 노출되지 않게 정리.
 // 2) [[term|표시이름(한자)|아이콘키|짧은 설명]] 마킹을 탭 가능한 버튼으로 렌더하고,
-//    탭하면 인라인 설명 카드를 띄운다. (별·궁·개념 모두 동일 UI)
+//    탭하면 버튼 옆에 떠 있는(floating) 팝오버로 설명을 띄운다. (별·궁·개념 동일 UI)
+//    팝오버는 portal로 body에 렌더해 부모 카드 overflow에 잘리지 않고, anchor 버튼
+//    기준으로 오른쪽→왼쪽→아래→위 순서로 자동 플립 + viewport clamp 한다.
 //
 // 견고성: 모델(temperature)이 같은 용어를 반복 마킹할 때 4번째 설명 필드를 생략해
 // 3필드([[term|표시이름|아이콘키]])로 내보내거나, 아이콘키를 빠뜨리거나, 필드를 더
@@ -12,7 +14,11 @@
 //   ② 별 사전(STAR_MEANINGS) →
 //   ③ 설명 없이 용어 버튼만(탭 시 제목만)
 // 순으로 폴백한다. 어떤 깨진 형태든 raw 마킹 문자열은 절대 노출하지 않는다.
-import { Fragment, useState, type ReactNode } from 'react';
+import {
+  Fragment, useEffect, useLayoutEffect, useRef, useState,
+  type CSSProperties, type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { STAR_MEANINGS } from '@/data/starMeanings';
 
@@ -127,10 +133,11 @@ function renderBold(text: string, keyBase: string): ReactNode[] {
   );
 }
 
-// 한 줄을 마킹 기준으로 쪼개 버튼/일반텍스트 노드로 변환
+// 한 줄을 마킹 기준으로 쪼개 버튼/일반텍스트 노드로 변환.
+// 버튼 클릭 시 자기 DOM 요소를 anchor 로 함께 넘겨 팝오버 위치 기준으로 쓴다.
 function renderInline(
   text: string,
-  onTap: (t: Term) => void,
+  onTap: (t: Term, el: HTMLElement) => void,
   resolve: (p: ParsedMark) => string,
   keyBase: string,
 ): ReactNode[] {
@@ -147,7 +154,9 @@ function renderInline(
     out.push(
       <button
         key={`${keyBase}-m${k}`}
-        onClick={() => onTap(t)}
+        type="button"
+        aria-haspopup="dialog"
+        onClick={(e) => onTap(t, e.currentTarget)}
         style={{
           border: 'none', background: ic.bg, cursor: 'pointer',
           borderRadius: 6, padding: '0 4px', margin: 0,
@@ -165,13 +174,109 @@ function renderInline(
   return out;
 }
 
-function InfoCard({ term }: { term: Term }) {
+type Place = 'right' | 'left' | 'below' | 'above';
+const VP_MARGIN = 8; // viewport 안쪽 여백
+const GAP = 8; // anchor 와 팝오버 사이 간격
+const NARROW = 420; // 이 폭 이하면 옆 배치 대신 위/아래 말풍선으로 폴백
+const ARROW = 9; // 화살표(꼬리) 한 변
+
+// 화살표(45° 회전 사각형)의 바깥 두 변에만 테두리를 줘 anchor 방향 꼬리를 만든다.
+function arrowStyle(place: Place, off: number): CSSProperties {
+  const b = `1px solid ${Z.p100}`;
+  const h = ARROW / 2;
+  const base: CSSProperties = {
+    position: 'absolute', width: ARROW, height: ARROW, background: Z.white,
+    transform: 'rotate(45deg)',
+  };
+  if (place === 'right') return { ...base, left: -h, top: off - h, borderLeft: b, borderBottom: b };
+  if (place === 'left') return { ...base, right: -h, top: off - h, borderTop: b, borderRight: b };
+  if (place === 'below') return { ...base, top: -h, left: off - h, borderLeft: b, borderTop: b };
+  return { ...base, bottom: -h, left: off - h, borderRight: b, borderBottom: b }; // above
+}
+
+/** anchor 버튼 옆에 떠 있는 팝오버. portal 로 body 에 렌더 → 부모 overflow 무시. */
+function Popover({ term, anchor, onClose }: { term: Term; anchor: HTMLElement; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; place: Place; arrow: number } | null>(null);
+  // 열리는 클릭이 버튼에 포커스를 주면서 유발하는 scroll-into-view 가 곧바로 팝오버를
+  // 닫지 않도록 짧은 유예. 이 시각 이전의 scroll 은 무시한다. (전환 시마다 갱신)
+  const graceUntil = useRef(0);
   const ic = ICONS[term.icon];
+
+  // 측정 후 위치 계산: 오른쪽→왼쪽→아래→위 순 자동 플립 + viewport clamp. (paint 전 동기 실행)
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    graceUntil.current = performance.now() + 300; // 열림/전환 직후 scroll 무시 창
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const a = anchor.getBoundingClientRect();
+    const pw = el.offsetWidth;
+    const ph = el.offsetHeight;
+    const narrow = vw < NARROW;
+    let place: Place;
+    let left: number;
+    let top: number;
+    if (!narrow && a.right + GAP + pw <= vw - VP_MARGIN) {
+      place = 'right'; left = a.right + GAP; top = a.top + a.height / 2 - ph / 2;
+    } else if (!narrow && a.left - GAP - pw >= VP_MARGIN) {
+      place = 'left'; left = a.left - GAP - pw; top = a.top + a.height / 2 - ph / 2;
+    } else if (a.bottom + GAP + ph <= vh - VP_MARGIN) {
+      place = 'below'; left = a.left + a.width / 2 - pw / 2; top = a.bottom + GAP;
+    } else {
+      place = 'above'; left = a.left + a.width / 2 - pw / 2; top = a.top - GAP - ph;
+    }
+    const cLeft = Math.max(VP_MARGIN, Math.min(left, vw - pw - VP_MARGIN));
+    const cTop = Math.max(VP_MARGIN, Math.min(top, vh - ph - VP_MARGIN));
+    // 화살표는 clamp 후에도 anchor 중심을 가리키도록 팝오버 내부 오프셋으로 계산
+    const arrow = place === 'right' || place === 'left'
+      ? Math.max(12, Math.min(a.top + a.height / 2 - cTop, ph - 12))
+      : Math.max(16, Math.min(a.left + a.width / 2 - cLeft, pw - 16));
+    setPos({ left: cLeft, top: cTop, place, arrow });
+  }, [anchor, term]);
+
+  // 바깥 탭 / 스크롤 / 리사이즈 / ESC 로 닫기. (anchor 재탭은 버튼 onClick 토글에 위임)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onDown = (e: Event) => {
+      const t = e.target as Node;
+      // 팝오버 내부·anchor·다른 용어 버튼 클릭은 무시 — 용어 전환은 버튼 onClick 토글에 맡긴다.
+      // (바깥탭 close 와 전환 open 이 한 제스처에서 충돌해 새 팝오버가 사라지는 것 방지)
+      const el = t instanceof Element ? t : t.parentElement;
+      if (anchor.contains(t) || ref.current?.contains(t) || el?.closest('button[aria-haspopup="dialog"]')) return;
+      onClose();
+    };
+    // 유예 창 안의 scroll(열림 유발 focus-scroll)은 무시, 이후 실제 스크롤엔 닫는다.
+    const onScroll = () => { if (performance.now() >= graceUntil.current) onClose(); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown, true);
+    window.addEventListener('scroll', onScroll, true); // capture: 내부 스크롤 컨테이너까지
+    window.addEventListener('resize', onClose);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown, true);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onClose);
+    };
+  }, [anchor, onClose]);
+
   return (
     <div
+      ref={ref}
+      role="dialog"
+      aria-label={term.label}
       style={{
-        marginTop: 10, background: Z.p50, border: `1px solid ${Z.p100}`,
-        borderRadius: 12, padding: '11px 13px', whiteSpace: 'normal',
+        position: 'fixed',
+        left: pos?.left ?? 0,
+        top: pos?.top ?? 0,
+        visibility: pos ? 'visible' : 'hidden', // 측정 전 깜빡임 방지
+        zIndex: 10000,
+        maxWidth: 'min(260px, calc(100vw - 16px))',
+        background: Z.white,
+        border: `1px solid ${Z.p100}`,
+        borderRadius: 12,
+        padding: '11px 13px',
+        boxShadow: '0 8px 28px rgba(36,26,61,0.22)',
       }}
     >
       <div style={{ fontFamily: SERIF, fontSize: 13.5, fontWeight: 700, color: ic.fg, marginBottom: term.desc ? 4 : 0 }}>
@@ -181,20 +286,22 @@ function InfoCard({ term }: { term: Term }) {
       {term.desc && (
         <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink, lineHeight: 1.6 }}>{term.desc}</div>
       )}
+      {pos && <span aria-hidden style={arrowStyle(pos.place, pos.arrow)} />}
     </div>
   );
 }
 
 /**
- * 마킹·마크다운을 정리해 렌더하고, 탭한 용어의 설명 카드를 본문 아래에 표시.
+ * 마킹·마크다운을 정리해 렌더하고, 탭한 용어의 설명을 anchor 옆 floating 팝오버로 표시.
  * @param glossary 응답 전체 기준 term→설명 사전 (섹션별로 쪼개 렌더할 때 상위에서 주입).
  *                 설명이 생략된 3필드 마킹의 설명을 같은 응답 다른 마킹에서 재사용하기 위함.
  */
 export function AiText({ text, glossary }: { text: string; glossary?: Record<string, string> }) {
-  // 탭으로 펼친 용어 (같은 용어 다시 탭하면 닫힘)
-  const [open, setOpen] = useState<Term | null>(null);
-  const onTap = (t: Term) =>
-    setOpen((cur) => (cur?.term === t.term && cur.label === t.label ? null : t));
+  // 열린 팝오버: 용어 + anchor 요소. 같은 버튼 재탭 → 닫힘 / 다른 버튼 → 그 위치로 이동.
+  const [open, setOpen] = useState<{ term: Term; anchor: HTMLElement } | null>(null);
+  const onTap = (t: Term, el: HTMLElement) =>
+    setOpen((cur) => (cur?.anchor === el ? null : { term: t, anchor: el }));
+  const close = () => setOpen(null);
 
   // 자기 텍스트 사전 + 상위 주입 사전 병합 (둘 다 같은 응답이므로 합집합)
   const effective = { ...glossary, ...buildGlossary(text) };
@@ -214,7 +321,8 @@ export function AiText({ text, glossary }: { text: string; glossary?: Record<str
           {renderInline(cleanLine(rawLine), onTap, resolve, `l${li}`)}
         </Fragment>
       ))}
-      {open && <InfoCard term={open} />}
+      {/* open 은 클릭(클라이언트)에서만 세팅되므로 SSR 중엔 portal 미생성 */}
+      {open && createPortal(<Popover term={open.term} anchor={open.anchor} onClose={close} />, document.body)}
     </>
   );
 }
