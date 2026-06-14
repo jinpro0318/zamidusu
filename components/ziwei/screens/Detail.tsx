@@ -1,14 +1,14 @@
 'use client';
 
 // screens/Detail.tsx — palace detail: 즉답 요약 → 구조화 AI 본문 → 대화형 심화
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
-import { AiText } from '@/components/ai/AiText';
+import { AiText, buildGlossary } from '@/components/ai/AiText';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
 import { QUESTIONS } from '@/data/questions';
@@ -112,6 +112,9 @@ export function Detail({
   };
 
   const sections = hasAnswer ? parseSections(cleanMd(mainAnswer)) : null;
+  // 응답 전체 기준 용어 사전 — 섹션별로 쪼개 렌더하므로, 설명이 생략된 3필드 마킹의
+  // 설명을 다른 섹션의 마킹에서 재사용하려면 전체 답변에서 한 번에 모아 내려줘야 한다.
+  const glossary = useMemo(() => buildGlossary(cleanMd(mainAnswer)), [mainAnswer]);
 
   // 첫 assistant 응답 이후의 후속 대화 (사용자 질문 + 추가 답변)
   const firstAssistantIdx = visibleMessages.findIndex((m) => m.role === 'assistant');
@@ -260,13 +263,13 @@ export function Detail({
                 <span style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: Z.ink }}>{sec.title}</span>
               </div>
               <div style={{ fontFamily: SANS, fontSize: 14, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-                <AiText text={sec.body} />
+                <AiText text={sec.body} glossary={glossary} />
               </div>
             </div>
           ))}
           {hasAnswer && !sections && (
             <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '16px 18px', fontFamily: SANS, fontSize: 14.5, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-              <AiText text={cleanMd(mainAnswer)} />
+              <AiText text={cleanMd(mainAnswer)} glossary={glossary} />
             </div>
           )}
           {hasAnswer && (
@@ -360,7 +363,7 @@ export function Detail({
                   whiteSpace: 'pre-wrap',
                 }}
               >
-                {m.role === 'user' ? m.content : <AiText text={m.content} />}
+                {m.role === 'user' ? m.content : <AiText text={m.content} glossary={glossary} />}
               </div>
             ))}
             {isLoading && followUps.at(-1)?.role === 'user' && (
