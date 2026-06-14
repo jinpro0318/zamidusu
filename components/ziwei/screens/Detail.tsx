@@ -1,7 +1,7 @@
 'use client';
 
 // screens/Detail.tsx — palace detail: 즉답 요약 → 구조화 AI 본문 → 대화형 심화
-import { useRef, useEffect, useState, type ReactNode } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
@@ -12,15 +12,17 @@ import { AiText } from '@/components/ai/AiText';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
 import { QUESTIONS } from '@/data/questions';
-import { STAR_MEANINGS, STAR_NAME_RE } from '@/data/starMeanings';
+import { STAR_MEANINGS } from '@/data/starMeanings';
 import { starKo, starWithHanja } from '@/lib/star-names';
 import type { Area, Nav, NavParams } from '@/lib/ziwei-types';
 
 const SECTION_TITLES = ['성향', '강점', '주의할 점', '조언'] as const;
 
 // AI 본문을 [성향]/[강점]/[주의할 점]/[조언] 마커로 분리. 마커가 2개 미만이면 null(통짜 폴백).
+// 모델이 용어 마킹([[...]])에 이끌려 머리글을 [[성향]]처럼 겹대괄호로 내보내기도 하므로,
+// 대괄호를 1개 이상([+ ... ]+) 허용해 본문에 stray 괄호가 남지 않도록 통째로 소비한다.
 function parseSections(text: string): { title: string; body: string }[] | null {
-  const re = /\[(성향|강점|주의할 점|조언)\]/g;
+  const re = /\[+(성향|강점|주의할 점|조언)\]+/g;
   const found = [...text.matchAll(re)];
   if (found.length < 2) return null;
   return found.map((m, i) => ({
@@ -35,36 +37,6 @@ function cleanMd(text: string): string {
     .replace(/\*\*/g, '')
     .replace(/^#{1,6}\s*/gm, '')
     .replace(/^\s*[-*]\s+/gm, '• ');
-}
-
-// 본문 속 별 이름을 탭 가능한 골드 스팬으로 변환
-function renderWithStars(text: string, onTap: (star: string) => void): ReactNode[] {
-  const nodes: ReactNode[] = [];
-  const re = new RegExp(STAR_NAME_RE.source, 'g');
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let k = 0;
-  while ((m = re.exec(text))) {
-    if (m.index > last) nodes.push(text.slice(last, m.index));
-    const star = m[1];
-    nodes.push(
-      <button
-        key={k++}
-        onClick={() => onTap(star)}
-        style={{
-          border: 'none', background: 'rgba(199,162,63,0.13)', cursor: 'pointer',
-          borderRadius: 6, padding: '0 4px', margin: 0,
-          font: 'inherit', color: '#9C7C1E', fontWeight: 700,
-          borderBottom: '1.5px dotted rgba(199,162,63,0.7)',
-        }}
-      >
-        {m[0]}
-      </button>,
-    );
-    last = m.index + m[0].length;
-  }
-  nodes.push(text.slice(last));
-  return nodes;
 }
 
 export function Detail({
@@ -83,8 +55,6 @@ export function Detail({
 
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
-  // 탭해서 펼친 별: { star, sectionIdx } — 해당 섹션 카드 아래에 의미 박스 표시
-  const [openStar, setOpenStar] = useState<{ star: string; section: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const triggered = useRef(false);
 
@@ -152,27 +122,6 @@ export function Detail({
   const askSuggested = (q: string) => {
     if (isLoading) return;
     append({ role: 'user', content: q });
-  };
-
-  const tapStar = (section: number) => (star: string) =>
-    setOpenStar((cur) => (cur?.star === star && cur.section === section ? null : { star, section }));
-
-  const starInfoBox = (star: string) => {
-    const meaning = STAR_MEANINGS[star];
-    if (!meaning) return null;
-    return (
-      <div
-        style={{
-          marginTop: 10, background: Z.p50, border: `1px solid ${Z.p100}`,
-          borderRadius: 12, padding: '11px 13px',
-        }}
-      >
-        <div style={{ fontFamily: SERIF, fontSize: 13.5, fontWeight: 700, color: Z.p600, marginBottom: 4 }}>
-          ★ {star}{meaning.hanja ? `(${meaning.hanja})` : ''}
-        </div>
-        <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink, lineHeight: 1.6 }}>{meaning.desc}</div>
-      </div>
-    );
   };
 
   return (
@@ -311,20 +260,18 @@ export function Detail({
                 <span style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: Z.ink }}>{sec.title}</span>
               </div>
               <div style={{ fontFamily: SANS, fontSize: 14, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-                {renderWithStars(sec.body, tapStar(i))}
+                <AiText text={sec.body} />
               </div>
-              {openStar?.section === i && starInfoBox(openStar.star)}
             </div>
           ))}
           {hasAnswer && !sections && (
             <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '16px 18px', fontFamily: SANS, fontSize: 14.5, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-              {renderWithStars(cleanMd(mainAnswer), tapStar(-1))}
-              {openStar?.section === -1 && starInfoBox(openStar.star)}
+              <AiText text={cleanMd(mainAnswer)} />
             </div>
           )}
           {hasAnswer && (
             <div style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink3, textAlign: 'center' }}>
-              밑줄 친 별 이름을 탭하면 그 별의 의미를 볼 수 있어요
+              밑줄 친 별·궁·용어를 탭하면 뜻풀이를 볼 수 있어요
             </div>
           )}
 
