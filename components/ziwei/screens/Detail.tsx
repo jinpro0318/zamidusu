@@ -8,7 +8,7 @@ import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
-import { AiText, buildGlossary } from '@/components/ai/AiText';
+import { AiText, buildGlossary, TermLegend } from '@/components/ai/AiText';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
 import { QUESTIONS } from '@/data/questions';
@@ -272,11 +272,7 @@ export function Detail({
               <AiText text={cleanMd(mainAnswer)} glossary={glossary} />
             </div>
           )}
-          {hasAnswer && (
-            <div style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink3, textAlign: 'center' }}>
-              밑줄 친 별·궁·용어를 탭하면 뜻풀이를 볼 수 있어요
-            </div>
-          )}
+          {hasAnswer && <TermLegend />}
 
           {/* 로딩 */}
           {isLoading && !hasAnswer && (

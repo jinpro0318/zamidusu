@@ -32,12 +32,20 @@ interface Term {
   desc: string; // 해소된 한 줄 설명 (없으면 '')
 }
 
-// 아이콘키 → 글리프 + 색 (star=골드, palace=퍼플, concept=중립). 브랜드 토큰 기반.
-const ICONS: Record<IconKey, { glyph: string; fg: string; bg: string; bd: string }> = {
-  star: { glyph: '★', fg: '#9C7C1E', bg: 'rgba(199,162,63,0.13)', bd: 'rgba(199,162,63,0.7)' },
-  palace: { glyph: '⌂', fg: Z.p600, bg: 'rgba(124,93,199,0.13)', bd: 'rgba(124,93,199,0.6)' },
-  concept: { glyph: '✦', fg: Z.ink2, bg: 'rgba(107,99,120,0.12)', bd: 'rgba(107,99,120,0.45)' },
+// 용어 종류별 글리프 + 색 + 라벨 (star=골드, palace=퍼플, concept=중립). 브랜드 토큰 기반.
+// 본문 버튼 / 팝오버 종류뱃지 / 범례가 모두 이 한 곳을 끌어다 쓴다 (아이콘·색·라벨 일관).
+//  - label: 팝오버 헤더 종류 뱃지 문구
+//  - short: 본문 아래 미니 범례 문구
+export const TERM_TYPES: Record<
+  IconKey,
+  { glyph: string; fg: string; bg: string; bd: string; label: string; short: string }
+> = {
+  star: { glyph: '★', fg: '#9C7C1E', bg: 'rgba(199,162,63,0.13)', bd: 'rgba(199,162,63,0.7)', label: '별', short: '별' },
+  palace: { glyph: '⌂', fg: Z.p600, bg: 'rgba(124,93,199,0.13)', bd: 'rgba(124,93,199,0.6)', label: '궁 (인생의 자리)', short: '궁(자리)' },
+  concept: { glyph: '✦', fg: Z.ink2, bg: 'rgba(107,99,120,0.12)', bd: 'rgba(107,99,120,0.45)', label: '개념', short: '개념' },
 };
+// 기존 참조 호환용 별칭
+const ICONS = TERM_TYPES;
 
 // 마킹 블록: [[ ... ]] (내부에 대괄호 없음) + 최소 1개의 | 를 포함해야 용어 마킹으로 인정.
 // → 파이프 없는 [[성향]] 같은 머리글 잔재는 마킹으로 보지 않는다(버튼화하지 않음).
@@ -279,14 +287,58 @@ function Popover({ term, anchor, onClose }: { term: Term; anchor: HTMLElement; o
         boxShadow: '0 8px 28px rgba(36,26,61,0.22)',
       }}
     >
-      <div style={{ fontFamily: SERIF, fontSize: 13.5, fontWeight: 700, color: ic.fg, marginBottom: term.desc ? 4 : 0 }}>
-        <span style={{ marginRight: 5 }}>{ic.glyph}</span>
-        {term.label}
+      <div
+        style={{
+          display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 6,
+          marginBottom: term.desc ? 4 : 0,
+        }}
+      >
+        <span style={{ fontFamily: SERIF, fontSize: 13.5, fontWeight: 700, color: ic.fg }}>
+          <span style={{ marginRight: 5 }}>{ic.glyph}</span>
+          {term.label}
+        </span>
+        {/* 종류 라벨 뱃지 — 그 타입 색으로 일관 표시 */}
+        <span
+          style={{
+            fontFamily: SANS, fontSize: 10.5, fontWeight: 700, lineHeight: 1.4,
+            color: ic.fg, background: ic.bg, border: `1px solid ${ic.bd}`,
+            borderRadius: 20, padding: '1px 7px', whiteSpace: 'nowrap',
+          }}
+        >
+          {ic.label}
+        </span>
       </div>
       {term.desc && (
         <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink, lineHeight: 1.6 }}>{term.desc}</div>
       )}
       {pos && <span aria-hidden style={arrowStyle(pos.place, pos.arrow)} />}
+    </div>
+  );
+}
+
+/**
+ * 본문 색 구분 미니 범례 (★ 별 · ⌂ 궁(자리) · ✦ 개념). TERM_TYPES 한 곳에서 끌어다 쓴다.
+ * 각 항목을 그 타입 색으로 표시해 본문 버튼 색이 무엇을 뜻하는지 한눈에 알 수 있게 한다.
+ */
+export function TermLegend({ style }: { style?: CSSProperties }) {
+  const keys: IconKey[] = ['star', 'palace', 'concept'];
+  return (
+    <div
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexWrap: 'wrap', gap: '2px 4px',
+        fontFamily: SANS, fontSize: 11.5, color: Z.ink3, ...style,
+      }}
+    >
+      {keys.map((k, i) => (
+        <Fragment key={k}>
+          {i > 0 && <span aria-hidden style={{ color: Z.ink3 }}>·</span>}
+          <span style={{ color: TERM_TYPES[k].fg, fontWeight: 700, whiteSpace: 'nowrap' }}>
+            {TERM_TYPES[k].glyph} {TERM_TYPES[k].short}
+          </span>
+        </Fragment>
+      ))}
+      <span style={{ whiteSpace: 'nowrap' }}>— 탭하면 뜻풀이를 볼 수 있어요</span>
     </div>
   );
 }
