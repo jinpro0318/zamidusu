@@ -20,7 +20,7 @@ export default async function ChartAiPage({ params }: { params: Promise<{ id: st
   if (!chart) notFound();
 
   return (
-    <main className="mx-auto flex h-dvh max-w-md sm:max-w-2xl flex-col px-3 sm:px-6 safe-top">
+    <main className="mx-auto flex h-dvh w-full max-w-[480px] flex-col px-4 safe-top">
       <header className="flex items-center justify-between py-3">
         <Link
           href={`/chart/${id}`}

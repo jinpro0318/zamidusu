@@ -30,7 +30,7 @@ export default async function CompatibilityResultPage({
   const score = JSON.parse(rec.detail) as CompatibilityScore;
 
   return (
-    <main className="mx-auto max-w-md px-5 pb-16 safe-bottom">
+    <main className="mx-auto w-full max-w-[480px] px-5 pb-16 safe-bottom">
       <header className="flex items-center justify-between py-4 safe-top">
         <Link
           href="/compatibility"

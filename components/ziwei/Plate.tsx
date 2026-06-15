@@ -122,6 +122,9 @@ export function Plate({
         gap: 5,
         aspectRatio: '1/1',
         width: '100%',
+        // 넓은 컬럼에서도 보드가 과도하게 커지지 않도록 상한 + 가운데 정렬.
+        maxWidth: 440,
+        margin: '0 auto',
         background: 'rgba(0,0,0,0.18)',
         borderRadius: 14,
         padding: 6,

@@ -25,7 +25,7 @@ export default async function CompatibilityPage() {
     : [];
 
   return (
-    <main className="mx-auto max-w-md px-5 pb-16 safe-bottom min-h-dvh">
+    <main className="mx-auto w-full max-w-[480px] px-5 pb-16 safe-bottom min-h-dvh">
       <header className="flex items-center justify-between py-5 safe-top">
         <Link href="/" className="text-[11px] text-muted hover:gold-text tracking-[0.2em] transition">
           ← HOME

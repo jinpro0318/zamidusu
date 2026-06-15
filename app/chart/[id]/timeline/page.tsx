@@ -25,7 +25,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
   const age = currentDecadalAge(chart.birthYear);
 
   return (
-    <main className="mx-auto max-w-md sm:max-w-3xl px-4 sm:px-6 pb-16 safe-bottom">
+    <main className="mx-auto w-full max-w-[480px] px-4 pb-16 safe-bottom">
       <header className="flex items-center justify-between py-4 safe-top">
         <Link
           href={`/chart/${id}`}

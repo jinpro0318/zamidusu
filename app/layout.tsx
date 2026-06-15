@@ -46,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/*
           반응형 풀-블리드 레이아웃 (폰 목업 프레임 제거).
           - 모바일: 화면을 꽉 채움 (w-full h-dvh)
-          - 데스크탑: 중앙 정렬 컬럼이 최대 640px까지 유동적으로 늘어남
+          - 데스크탑: 중앙 정렬 컬럼이 480px 고정 폭으로 가운데 정렬
           - body의 radial-gradient 배경은 globals.css 에서 처리
         */}
         <div className="relative flex min-h-dvh w-full justify-center">
@@ -54,8 +54,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             // transform: translateZ(0)으로 이 컬럼을 CSS containing block으로 만든다.
             // 결과: 자식 트리의 position:fixed 시트(PickerSheet/ShareSheet/QASheet/LoginGate)와
             // 하단 고정 입력창이 뷰포트가 아닌 이 컬럼 폭에 attach → 데스크탑에서 콘텐츠 폭을 벗어나지 않음.
+            // 모든 기기에서 동일한 480px 앱 컬럼으로 통일 (폰=꽉 채움, 태블릿/PC=가운데 정렬+양옆 여백).
             style={{ transform: 'translateZ(0)', willChange: 'transform' }}
-            className="relative flex h-dvh w-full max-w-[640px] flex-col overflow-hidden bg-[#15102a]"
+            className="relative flex h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-[#15102a]"
           >
             {/* 콘텐츠 영역 — 자식들이 minHeight:100% 로 잡히도록 고정 높이 제공 */}
             <div className="no-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">

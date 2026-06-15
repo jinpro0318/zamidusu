@@ -31,7 +31,7 @@ export default async function SharedChartPage({
   const payload = JSON.parse(chart.payload) as AstrolabePayload;
 
   return (
-    <main className="mx-auto max-w-md sm:max-w-4xl px-3 sm:px-6 pb-20 safe-bottom min-h-dvh">
+    <main className="mx-auto w-full max-w-[480px] px-4 pb-20 safe-bottom min-h-dvh">
       <header className="flex items-center justify-between py-5 safe-top">
         <Link href="/" className="font-display text-base gold-text tracking-[0.3em]">紫微</Link>
         <Link
