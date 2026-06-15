@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Z, SERIF, SANS } from '@/theme/tokens';
-import { PrimaryBtn, KakaoBtn, Seg } from '@/components/ziwei/atoms';
+import { PrimaryBtn, GoogleBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput } from '@/components/ziwei/common';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { Nav } from '@/lib/ziwei-types';
@@ -16,7 +16,7 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [pw2, setPw2] = useState('');
-  const [loading, setLoading] = useState<'' | 'email' | 'kakao'>('');
+  const [loading, setLoading] = useState<'' | 'email' | 'google'>('');
 
   async function onSubmit() {
     if (!email || !pw) return toast.error('이메일과 비밀번호를 입력해 주세요');
@@ -49,19 +49,19 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
     }
   }
 
-  async function onKakao() {
-    setLoading('kakao');
+  async function onGoogle() {
+    setLoading('google');
     try {
       const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'kakao',
+        provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(callbackUrl ?? '/mypage')}`,
         },
       });
       if (error) throw error;
     } catch (e: any) {
-      toast.error(e.message ?? '카카오 로그인 실패');
+      toast.error(e.message ?? '구글 로그인 실패');
       setLoading('');
     }
   }
@@ -107,19 +107,19 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
         </div>
         <button
           type="button"
-          onClick={onKakao}
-          disabled={loading === 'kakao'}
-          aria-label="카카오 계정으로 로그인"
-          aria-busy={loading === 'kakao'}
+          onClick={onGoogle}
+          disabled={loading === 'google'}
+          aria-label="구글 계정으로 로그인"
+          aria-busy={loading === 'google'}
           style={{
             all: 'unset',
             display: 'block',
             width: '100%',
-            cursor: loading === 'kakao' ? 'wait' : 'pointer',
-            opacity: loading === 'kakao' ? 0.6 : 1,
+            cursor: loading === 'google' ? 'wait' : 'pointer',
+            opacity: loading === 'google' ? 0.6 : 1,
           }}
         >
-          <KakaoBtn />
+          <GoogleBtn />
         </button>
       </div>
     </div>
