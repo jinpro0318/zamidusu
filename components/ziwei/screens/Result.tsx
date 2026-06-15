@@ -175,8 +175,9 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
       </div>
 
       {/* ── 12 영역 리스트 ── */}
-      {/* 비회원: 하단 고정 가입 바텀시트에 가리지 않도록 여유 패딩 확보 */}
-      <div style={{ padding: loggedIn ? '8px 18px 26px' : '8px 18px 320px', flex: 1 }}>
+      {/* 비회원: 접이식 가입 바(기본 얇은 바)에 가리지 않도록 하단 여유 패딩.
+          펼치면 일시적으로 콘텐츠를 덮지만 사용자가 접을 수 있음. */}
+      <div style={{ padding: loggedIn ? '8px 18px 26px' : '8px 18px 92px', flex: 1 }}>
         <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '6px 4px 12px' }}>
           12궁을 <b style={{ color: Z.ink }}>내 인생 영역</b>으로 풀었어요 · 눌러서 자세히 보기
         </p>
