@@ -7,7 +7,12 @@ import { adoptGuestData } from "@/lib/guest";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
-  const redirectTo = url.searchParams.get("redirectTo") ?? "/mypage";
+  // 오픈 리다이렉트 방지 — 내부 경로(/로 시작, //·/\ 제외)만 허용.
+  const rawRedirect = url.searchParams.get("redirectTo") ?? "/mypage";
+  const redirectTo =
+    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") && !rawRedirect.startsWith("/\\")
+      ? rawRedirect
+      : "/mypage";
 
   if (!code) {
     return NextResponse.redirect(new URL("/sign-in?error=no_code", url.origin));
