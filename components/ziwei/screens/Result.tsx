@@ -48,6 +48,12 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
     setGate({ reason: 'detail', onSuccess: null });
   };
 
+  // 비회원이 공유를 누르면 공유 시트 대신 가입 모달(게이트)로 유도. 로그인 후 이 명반으로 복귀.
+  const openShareGate = () => {
+    setPendingHref(nav.hrefFor('result'));
+    setGate({ reason: 'share', onSuccess: null });
+  };
+
   const sixKeys = ['命宮', '夫妻宮', '財帛宮', '官祿宮', '疾厄宮', '田宅宮'];
   const list = showAll
     ? allAreas
@@ -89,7 +95,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
             저장
           </button>
           <button
-            onClick={() => nav.requireLogin('share', () => setShare(true))}
+            onClick={() => (loggedIn ? setShare(true) : openShareGate())}
             style={{
               fontFamily: SANS, fontSize: 12.5, color: Z.ink, fontWeight: 700,
               border: 'none', background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
