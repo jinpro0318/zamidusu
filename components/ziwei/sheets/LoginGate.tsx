@@ -1,8 +1,15 @@
 'use client';
 
-// components/sheets/LoginGate.tsx — login gate for value-add features (soft bottom sheet)
+// components/sheets/LoginGate.tsx — value-add 기능 로그인 게이트 (soft bottom sheet)
+// 실제 지원하는 provider만 노출: 카카오(모달에서 바로 OAuth) + 이메일(/sign-in 폼).
+// 과거엔 Google/Apple/이메일 버튼이 전부 /sign-in으로만 이동했으나, 실제 로그인은
+// 카카오+이메일만 지원하므로 미작동 Google/Apple을 제거하고 카카오는 모달에서 바로 실행.
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { KakaoBtn } from '@/components/ziwei/atoms';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import type { GateState } from '@/lib/ziwei-types';
 
 const COPY: Record<string, { badge: string; t: string; s: string }> = {
@@ -12,9 +19,44 @@ const COPY: Record<string, { badge: string; t: string; s: string }> = {
   detail: { badge: '상세 풀이', t: '여기서부터는 회원 전용이에요', s: '카카오로 시작하면 12궁 상세 풀이·대운 타임라인·AI 해석이 모두 열려요.' },
 };
 
-export function LoginGate({ gate, onClose, onLogin }: { gate: GateState | null; onClose: () => void; onLogin: () => void }) {
+export function LoginGate({
+  gate,
+  onClose,
+  callbackUrl = '/',
+}: {
+  gate: GateState | null;
+  onClose: () => void;
+  /** 로그인 성공 후 돌아올 경로 (예: 보려던 궁 상세). */
+  callbackUrl?: string;
+}) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
   if (!gate) return null;
   const c = COPY[gate.reason] || { badge: '', t: '카카오로 3초 만에 시작하기', s: '' };
+
+  // 카카오는 모달에서 바로 OAuth 실행 (페이지 왕복 제거).
+  const handleKakao = async () => {
+    setLoading(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'kakao',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(callbackUrl)}`,
+        },
+      });
+      if (error) throw error;
+      // 성공 시 카카오로 리다이렉트되므로 별도 처리 불필요.
+    } catch (e: any) {
+      toast.error(e?.message ?? '카카오 로그인 실패');
+      setLoading(false);
+    }
+  };
+
+  // 이메일은 /sign-in 폼으로 (이메일/비밀번호 입력 + 회원가입 탭 제공).
+  const goEmail = () => router.push(`/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+
   return (
     <div
       onClick={onClose}
@@ -71,34 +113,34 @@ export function LoginGate({ gate, onClose, onLogin }: { gate: GateState | null; 
         </div>
         <button
           type="button"
-          onClick={onLogin}
+          onClick={handleKakao}
+          disabled={loading}
           aria-label="카카오로 로그인 시작"
-          style={{ all: 'unset', display: 'block', width: '100%', cursor: 'pointer' }}
+          aria-busy={loading}
+          style={{ all: 'unset', display: 'block', width: '100%', cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1 }}
         >
           <KakaoBtn>카카오로 시작하기</KakaoBtn>
         </button>
-        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          {['Google', 'Apple', '이메일'].map((m) => (
-            <button
-              key={m}
-              onClick={onLogin}
-              style={{
-                flex: 1,
-                border: `1.5px solid ${Z.line}`,
-                background: Z.white,
-                cursor: 'pointer',
-                borderRadius: 13,
-                padding: '11px 0',
-                fontFamily: SANS,
-                fontSize: 13.5,
-                fontWeight: 600,
-                color: Z.ink,
-              }}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
+        <button
+          type="button"
+          onClick={goEmail}
+          disabled={loading}
+          style={{
+            width: '100%',
+            marginTop: 10,
+            border: `1.5px solid ${Z.line}`,
+            background: Z.white,
+            cursor: 'pointer',
+            borderRadius: 13,
+            padding: '13px 0',
+            fontFamily: SANS,
+            fontSize: 14,
+            fontWeight: 600,
+            color: Z.ink,
+          }}
+        >
+          이메일로 계속하기
+        </button>
         <button
           onClick={onClose}
           style={{

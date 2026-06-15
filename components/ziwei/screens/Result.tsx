@@ -1,7 +1,6 @@
 'use client';
 
 // screens/Result.tsx — 메인 결과 화면 (명반 차트 + 12영역 통합 스크롤 페이지)
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
@@ -28,7 +27,6 @@ interface ResultProps {
 }
 
 export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, chartId }: ResultProps) {
-  const router = useRouter();
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
   const [showAll, setShowAll] = useState(false);
   const [share, setShare] = useState(false);
@@ -251,7 +249,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
       <LoginGate
         gate={gate}
         onClose={() => setGate(null)}
-        onLogin={() => router.push(`/sign-in?callbackUrl=${encodeURIComponent(pendingHref ?? '/')}`)}
+        callbackUrl={pendingHref ?? '/'}
       />
       <Toast msg={toast} />
     </div>
