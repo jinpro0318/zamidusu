@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Nanum_Myeongjo } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SupportWidget } from "@/components/support/SupportWidget";
@@ -67,6 +68,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
         <Toaster theme="dark" position="top-center" />
+        {/*
+          Kakao JS SDK — 카카오톡 공유(Kakao.Share.sendDefault)에 사용.
+          init은 NEXT_PUBLIC_KAKAO_JS_KEY가 있을 때만 lib/share/kakao.ts에서 수행.
+          src/integrity는 카카오 공식 CDN 2.7.5 파일 기준 SRI(직접 산출).
+        */}
+        <Script
+          src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.5/kakao.min.js"
+          integrity="sha384-dok87au0gKqJdxs7msEdBPNnKSRT+/mhTVzq+qOhcL464zXwvcrpjeWvyj1kCdq6"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

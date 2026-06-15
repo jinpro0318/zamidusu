@@ -25,6 +25,7 @@ export function ResultClient({
       subjectName={subjectName}
       birthLabel={birthLabel}
       loggedIn={loggedIn}
+      chartId={chartId}
     />
   );
 }

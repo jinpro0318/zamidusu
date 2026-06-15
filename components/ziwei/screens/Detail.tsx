@@ -452,6 +452,7 @@ export function Detail({
         onClose={() => setShare(false)}
         showToast={showToast}
         soulStars={allAreas.find((x) => x.cn === '命宮')?.stars}
+        chartId={chartId}
       />
       <Toast msg={toast} />
     </div>

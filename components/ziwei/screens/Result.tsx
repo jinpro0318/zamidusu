@@ -23,9 +23,11 @@ interface ResultProps {
   subjectName?: string;
   birthLabel?: string;
   loggedIn?: boolean;
+  /** 공유 링크 발급에 사용할 명반 id */
+  chartId?: string;
 }
 
-export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }: ResultProps) {
+export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, chartId }: ResultProps) {
   const router = useRouter();
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
   const [showAll, setShowAll] = useState(false);
@@ -224,6 +226,8 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
         onClose={() => setShare(false)}
         showToast={showToast}
         soulStars={allAreas.find((x) => x.cn === '命宮')?.stars}
+        chartId={chartId}
+        title={subjectName}
       />
       {/* 궁 풀이 모달 — 간단 풀이 항상 노출, 상세 풀이는 회원 게이트 */}
       <PalaceModal

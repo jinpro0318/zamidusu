@@ -1,9 +1,9 @@
 'use client';
 
 // components/sheets/ShareSheet.tsx — Kakao "친구에게 공유" bottom sheet
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
-import { SHARE_URL, shareKakao, copyLink } from '@/lib/share/kakao';
+import { shareKakao, copyLink, getShareUrl } from '@/lib/share/kakao';
 
 type ShowToast = (msg: string) => void;
 
@@ -60,13 +60,30 @@ export function ShareSheet({
   onClose,
   showToast,
   soulStars,
+  chartId,
+  title,
 }: {
   open: boolean;
   onClose: () => void;
   showToast: ShowToast;
   /** 실제 명반의 命宮 주성 (한자). 비어 있으면 空宮으로 표기. */
   soulStars?: string[];
+  /** 공유 대상 명반 id — 실제 공유 링크(/share/{token}) 발급에 사용 */
+  chartId?: string;
+  /** 공유 카드 제목용 명반 주인 이름 */
+  title?: string;
 }) {
+  // 시트가 열리면 실제 공유 URL을 미리 발급해 미리보기에 표시 (버튼 동작과 동일 캐시 사용).
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open || !chartId) return;
+    let alive = true;
+    getShareUrl(chartId).then((u) => alive && setPreviewUrl(u));
+    return () => {
+      alive = false;
+    };
+  }, [open, chartId]);
+
   if (!open) return null;
   // 명궁이 공궁이면 임의로 다른 궁의 별을 끌어오지 않고 空宮으로 표기한다.
   const soulLabel = soulStars && soulStars.length > 0 ? soulStars.join('·') : '空宮';
@@ -143,14 +160,14 @@ export function ShareSheet({
                 whiteSpace: 'nowrap',
               }}
             >
-              {SHARE_URL}
+              {previewUrl ?? (chartId ? '공유 링크 생성 중…' : '')}
             </div>
           </div>
         </div>
 
         {/* kakao primary */}
         <button
-          onClick={() => shareKakao(showToast)}
+          onClick={() => chartId ? shareKakao(chartId, { title, soulStars }, showToast) : showToast('공유할 명반을 찾지 못했어요')}
           style={{
             width: '100%',
             border: 'none',
@@ -181,7 +198,7 @@ export function ShareSheet({
 
         {/* other share targets */}
         <div style={{ display: 'flex', gap: 6 }}>
-          <IconBtn label="링크 복사" bg={Z.p600} onClick={() => copyLink(showToast)}>
+          <IconBtn label="링크 복사" bg={Z.p600} onClick={() => chartId ? copyLink(chartId, showToast) : showToast('공유할 명반을 찾지 못했어요')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M9 12h6M10 8H8a4 4 0 100 8h2M14 8h2a4 4 0 010 8h-2" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
             </svg>
