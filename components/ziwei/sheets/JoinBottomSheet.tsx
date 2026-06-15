@@ -22,10 +22,13 @@ export function JoinBottomSheet({ onJoin, onLogin }: { onJoin: () => void; onLog
         left: 0,
         right: 0,
         zIndex: 120,
-        background: `linear-gradient(180deg, ${Z.p850}, ${Z.p900})`,
+        // 차트 보드(거의 검은 p900~p800)와 확실히 구분되도록 한 단계 밝은 보라 톤 +
+        // 상단 금색 경계선 + 강한 그림자로 떠 있는 카드처럼 분리.
+        background: `linear-gradient(180deg, ${Z.p700} 0%, ${Z.p850} 100%)`,
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
-        boxShadow: '0 -12px 40px rgba(0,0,0,0.3)',
+        borderTop: '2px solid rgba(227,195,107,0.45)',
+        boxShadow: '0 -16px 46px rgba(0,0,0,0.5)',
         padding: '16px 16px max(16px, env(safe-area-inset-bottom))',
       }}
     >
@@ -49,8 +52,8 @@ export function JoinBottomSheet({ onJoin, onLogin }: { onJoin: () => void; onLog
             key={b.label}
             style={{
               flexShrink: 0, width: 96,
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(227,195,107,0.22)',
+              background: 'rgba(0,0,0,0.18)',
+              border: '1px solid rgba(227,195,107,0.28)',
               borderRadius: 13, padding: '11px 9px',
               display: 'flex', flexDirection: 'column', gap: 6,
             }}
