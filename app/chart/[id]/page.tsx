@@ -19,6 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function ChartPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
+  const loggedIn = !!session?.user;
   const userId = session?.user
     ? ((session.user as any).id as string)
     : await getGuestUserId();
@@ -37,7 +38,7 @@ export default async function ChartPage({ params }: { params: Promise<{ id: stri
       subjectName={chart.subjectName ?? undefined}
       birthLabel={birthLabel}
       chartId={chart.id}
-      loggedIn={true}
+      loggedIn={loggedIn}
     />
   );
 }

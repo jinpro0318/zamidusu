@@ -6,7 +6,7 @@ import { Z, SERIF, SANS } from '@/theme/tokens';
 import { StarField, PrimaryBtn } from '@/components/ziwei/atoms';
 import type { Nav } from '@/lib/ziwei-types';
 
-export function Onboarding({ nav }: { nav: Nav }) {
+export function Onboarding({ nav, account }: { nav: Nav; account?: { nickname: string } | null }) {
   return (
     <div
       style={{
@@ -18,6 +18,38 @@ export function Onboarding({ nav }: { nav: Nav }) {
       }}
     >
       <StarField count={54} gold={7} />
+
+      {/* 상단 계정 버튼 — 비회원: 로그인 / 회원: 👤 닉네임 → 마이페이지 */}
+      <button
+        type="button"
+        onClick={() => nav.go(account ? 'mypage' : 'login')}
+        aria-label={account ? `${account.nickname} 마이페이지로 이동` : '로그인'}
+        style={{
+          position: 'absolute',
+          top: 'calc(env(safe-area-inset-top) + 14px)',
+          right: 16,
+          zIndex: 5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 5,
+          maxWidth: 160,
+          cursor: 'pointer',
+          fontFamily: SANS,
+          fontSize: 13,
+          fontWeight: 700,
+          color: '#fff',
+          border: '1px solid rgba(255,255,255,0.25)',
+          background: 'rgba(255,255,255,0.08)',
+          borderRadius: 18,
+          padding: '7px 13px',
+        }}
+      >
+        {account ? (
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {account.nickname}</span>
+        ) : (
+          '로그인'
+        )}
+      </button>
       <div
         style={{
           position: 'absolute',
@@ -92,23 +124,25 @@ export function Onboarding({ nav }: { nav: Nav }) {
           <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13, color: 'rgba(255,255,255,0.66)' }}>
             ✦ 가입 없이 바로 시작 · 결과까지 무료로 확인
           </div>
-          <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13.5, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
-            이미 회원이신가요?{' '}
-            <Link
-              href={nav.hrefFor('login')}
-              aria-label="로그인 페이지로 이동"
-              style={{
-                color: Z.goldBright,
-                fontWeight: 600,
-                textDecoration: 'none',
-                outlineOffset: 3,
-                borderRadius: 4,
-                padding: '2px 4px',
-              }}
-            >
-              로그인
-            </Link>
-          </div>
+          {!account && (
+            <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13.5, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
+              이미 회원이신가요?{' '}
+              <Link
+                href={nav.hrefFor('login')}
+                aria-label="로그인 페이지로 이동"
+                style={{
+                  color: Z.goldBright,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  outlineOffset: 3,
+                  borderRadius: 4,
+                  padding: '2px 4px',
+                }}
+              >
+                로그인
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getEntitlements } from "@/lib/entitlements";
 import { MypageClient } from "./client";
 
 export const metadata = { title: "마이페이지" };
@@ -10,16 +11,21 @@ export default async function MyPage() {
   if (!session?.user) redirect("/sign-in?callbackUrl=/mypage");
   const userId = (session.user as any).id as string;
 
-  const charts = await db.chart.findMany({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
-    take: 30,
-    select: {
-      id: true, subjectName: true,
-      birthYear: true, birthMonth: true, birthDay: true,
-      birthHour: true, gender: true,
-    },
-  });
+  const [charts, user, entitlements, compatCount] = await Promise.all([
+    db.chart.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      select: {
+        id: true, subjectName: true,
+        birthYear: true, birthMonth: true, birthDay: true,
+        birthHour: true, gender: true,
+      },
+    }),
+    db.user.findUnique({ where: { id: userId }, select: { name: true, createdAt: true } }),
+    getEntitlements(userId),
+    db.compatibility.count({ where: { ownerId: userId } }).catch(() => 0),
+  ]);
 
   const saved = charts.map((c) => ({
     id: c.id,
@@ -28,7 +34,22 @@ export default async function MyPage() {
     cn: "命",
   }));
 
-  return <MypageClient email={session.user.email ?? ""} saved={saved} />;
+  const nickname = user?.name?.trim() || (session.user.email ?? "회원").split("@")[0];
+  const joinedAt = user?.createdAt
+    ? `${user.createdAt.getFullYear()}.${String(user.createdAt.getMonth() + 1).padStart(2, "0")}.${String(user.createdAt.getDate()).padStart(2, "0")}`
+    : "";
+
+  return (
+    <MypageClient
+      email={session.user.email ?? ""}
+      nickname={nickname}
+      plan={entitlements.plan}
+      joinedAt={joinedAt}
+      chartCount={charts.length}
+      compatCount={compatCount}
+      saved={saved}
+    />
+  );
 }
 
 function branchOfHour(h: number): string {

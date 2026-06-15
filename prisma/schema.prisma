@@ -33,6 +33,25 @@ model User {
   conversations   AiConversation[]
   compatibilities Compatibility[]  @relation("CompatibilityOwner")
   aiDailyUsages   AiDailyUsage[]
+  feedbacks       Feedback[]
+}
+
+// ============================================================
+// Feedback — 고객센터(의견 보내기) 접수 내역.
+// 비로그인/게스트도 보낼 수 있으므로 userId는 nullable.
+// ============================================================
+
+model Feedback {
+  id         String   @id @default(cuid())
+  type       String   // "문의" | "버그 신고" | "기능 제안" | "기타"
+  content    String
+  replyEmail String?
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // ============================================================

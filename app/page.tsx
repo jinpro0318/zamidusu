@@ -1,9 +1,10 @@
-"use client";
+import { auth } from "@/lib/auth";
+import { HomeClient } from "./home-client";
 
-import { Onboarding } from "@/components/ziwei/screens/Onboarding";
-import { useNav } from "@/components/ziwei/use-nav";
-
-export default function Home() {
-  const nav = useNav();
-  return <Onboarding nav={nav} />;
+export default async function Home() {
+  const session = await auth();
+  const account = session?.user
+    ? { nickname: session.user.name?.trim() || (session.user.email ?? "회원").split("@")[0] }
+    : null;
+  return <HomeClient account={account} />;
 }

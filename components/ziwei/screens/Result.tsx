@@ -1,7 +1,6 @@
 'use client';
 
 // screens/Result.tsx — 메인 결과 화면 (명반 차트 + 12영역 통합 스크롤 페이지)
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
@@ -9,9 +8,12 @@ import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
+import { PalaceModal } from '@/components/ziwei/sheets/PalaceModal';
+import { JoinBottomSheet } from '@/components/ziwei/sheets/JoinBottomSheet';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
+import { AREA_INFO } from '@/data/areaInfo';
 import { starWithHanja } from '@/lib/star-names';
 import type { Area, GateState, Nav } from '@/lib/ziwei-types';
 
@@ -32,11 +34,17 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
   const [plateSel, setPlateSel] = useState('命宮');
   const [gate, setGate] = useState<GateState | null>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  // 탭한 궁의 풀이 모달 (cn key). null이면 닫힘.
+  const [modalKey, setModalKey] = useState<string | null>(null);
 
-  const guardDetail = (e: React.MouseEvent, href: string) => {
-    if (loggedIn) return;
-    e.preventDefault();
-    setPendingHref(href);
+  const modalArea = modalKey ? allAreas.find((x) => x.cn === modalKey) ?? null : null;
+  const modalInfo = (modalKey && AREA_INFO[modalKey]) || { about: '', star: '', ai: '' };
+
+  // 상세 풀이 게이트 → 회원가입 모달(LoginGate) 오픈. 로그인 후 해당 궁 상세로 복귀.
+  // 궁 모달을 닫고 게이트를 띄워야 z-index 충돌 없이 게이트가 위로 올라온다.
+  const openJoinGate = (key?: string) => {
+    setModalKey(null);
+    setPendingHref(key ? nav.hrefFor('detail', { key }) : null);
     setGate({ reason: 'detail', onSuccess: null });
   };
 
@@ -102,16 +110,20 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
           <div style={{ textAlign: 'center', fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: '#fff' }}>
             내 명반 차트
           </div>
+          {/* 출생정보 — 제목 바로 아래 중앙 */}
+          <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: -4 }}>
+            {subjectName ? `${subjectName} · ` : ''}{birthLabel ?? ''}
+          </div>
           <Plate selKey={plateSel} onSel={setPlateSel} easy={true} areas={allAreas} />
-          {/* 선택 궁 요약 카드 — 탭하면 상세 풀이로 이동 */}
-          <Link
-            href={nav.hrefFor('detail', { key: plateSel })}
-            onClick={(e) => guardDetail(e, nav.hrefFor('detail', { key: plateSel }))}
-            aria-label={`${plateCur.ko} (${plateCur.cn}) 상세 풀이 보기`}
+          {/* 선택 궁 요약 카드 — 탭하면 풀이 모달 오픈 */}
+          <button
+            type="button"
+            onClick={() => setModalKey(plateSel)}
+            aria-label={`${plateCur.ko} (${plateCur.cn}) 풀이 보기`}
             style={{
               background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(227,195,107,0.22)',
               borderRadius: 14, padding: '11px 14px', display: 'flex', gap: 12, alignItems: 'center',
-              color: 'inherit', textDecoration: 'none',
+              color: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%',
             }}
           >
             <AreaIcon h={plateCur.h} size={42} sel />
@@ -136,14 +148,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
             <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }} aria-hidden>
               <path d="M1 1l6 6-6 6" stroke="rgba(255,255,255,0.5)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </Link>
-          {/* 명반 일시 — 차트 하단 중앙 */}
-          <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>
-            {subjectName ? `${subjectName} · ` : ''}{birthLabel ?? ''}
-          </div>
-          <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-            각 궁을 눌러 선택 · 카드를 눌러 상세 풀이
-          </div>
+          </button>
 
           {/* 스크롤 안내 — 다크 패널 하단에 배치해 확실히 보이도록 */}
           <div
@@ -164,23 +169,24 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
       </div>
 
       {/* ── 12 영역 리스트 ── */}
-      <div style={{ padding: '8px 18px 26px', flex: 1 }}>
+      {/* 비회원: 하단 고정 가입 바텀시트에 가리지 않도록 여유 패딩 확보 */}
+      <div style={{ padding: loggedIn ? '8px 18px 26px' : '8px 18px 320px', flex: 1 }}>
         <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '6px 4px 12px' }}>
           12궁을 <b style={{ color: Z.ink }}>내 인생 영역</b>으로 풀었어요 · 눌러서 자세히 보기
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {list.map((a) => (
-            <Link
+            <button
               key={a.cn}
-              href={nav.hrefFor('detail', { key: a.cn })}
-              onClick={(e) => guardDetail(e, nav.hrefFor('detail', { key: a.cn }))}
-              aria-label={`${a.ko} (${a.cn}) 상세 보기`}
+              type="button"
+              onClick={() => setModalKey(a.cn)}
+              aria-label={`${a.ko} (${a.cn}) 풀이 보기`}
               style={{
                 display: 'flex', gap: 13, alignItems: 'center',
                 background: Z.white, border: `1px solid ${a.sel ? Z.p100 : Z.line}`,
                 borderRadius: 18, padding: '12px 14px',
                 boxShadow: '0 2px 10px rgba(36,26,61,0.04)',
-                color: 'inherit', textDecoration: 'none',
+                color: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%',
               }}
             >
               <AreaIcon h={a.h} size={44} sel={a.sel} />
@@ -197,7 +203,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
               <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }} aria-hidden>
                 <path d="M1 1l6 6-6 6" stroke={Z.ink3} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </Link>
+            </button>
           ))}
         </div>
         <button
@@ -219,6 +225,25 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true }:
         showToast={showToast}
         soulStars={allAreas.find((x) => x.cn === '命宮')?.stars}
       />
+      {/* 궁 풀이 모달 — 간단 풀이 항상 노출, 상세 풀이는 회원 게이트 */}
+      <PalaceModal
+        area={modalArea}
+        info={modalInfo}
+        loggedIn={loggedIn}
+        onClose={() => setModalKey(null)}
+        onJoin={() => openJoinGate(modalKey ?? undefined)}
+        onOpenFull={
+          loggedIn && modalKey
+            ? () => nav.go('detail', { key: modalKey })
+            : undefined
+        }
+      />
+
+      {/* 비회원 전용 — 하단 고정 가입 유도 바텀시트 */}
+      {!loggedIn && (
+        <JoinBottomSheet onJoin={() => openJoinGate()} onLogin={() => openJoinGate()} />
+      )}
+
       <LoginGate
         gate={gate}
         onClose={() => setGate(null)}

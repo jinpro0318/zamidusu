@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Nanum_Myeongjo } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { SupportWidget } from "@/components/support/SupportWidget";
 
 const myeongjo = Nanum_Myeongjo({
   subsets: ["latin"],
@@ -60,6 +61,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="no-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
               {children}
             </div>
+            {/* 고객센터 플로팅 버튼 — 모바일 프레임 컬럼에 attach (position:fixed가 이 컬럼 기준) */}
+            <SupportWidget />
           </div>
         </div>
         <Toaster theme="dark" position="top-center" />
