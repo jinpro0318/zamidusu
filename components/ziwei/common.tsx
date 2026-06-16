@@ -168,8 +168,10 @@ export function TapField({ children, ph, onClick, flex }: { children?: ReactNode
         color: children ? Z.ink : Z.ink3,
       }}
     >
-      <span>{children || ph}</span>
-      <svg width="11" height="7" viewBox="0 0 11 7">
+      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {children || ph}
+      </span>
+      <svg width="11" height="7" viewBox="0 0 11 7" style={{ flexShrink: 0 }}>
         <path d="M1 1l4.5 4.5L10 1" stroke={Z.ink3} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>

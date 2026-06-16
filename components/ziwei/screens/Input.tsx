@@ -9,6 +9,35 @@ import { BackBar, Label, TextInput, TapField, PickerSheet } from '@/components/z
 import type { Nav } from '@/lib/ziwei-types';
 import { toast } from 'sonner';
 
+// 자미두수 정통(중국·대만식) 12시진.
+// - 지방시(진태양시) 보정: 한국 시계는 경도차로 약 30분 빠르므로 시진 경계를 "30분" 단위로 표시.
+// - 자시 정자시법: 밤 23:30(한국 시계)부터는 "다음 날 자시"로 본다(야자시/조자시 일주 분리 안 함).
+// value는 계산부 분기용 표준 명칭(영문), label은 한국 시계 기준 범위(30분 보정 반영).
+const ZAMI_SIJIN_OPTIONS = [
+  { value: 'UNKNOWN', label: '모름 / 시간 미상' },
+  { value: 'ZI', label: '자시(子時) 23:30 ~ 01:30 (전날 밤 11시 반부터)' },
+  { value: 'CHOU', label: '축시(丑時) 01:30 ~ 03:30' },
+  { value: 'YIN', label: '인시(寅時) 03:30 ~ 05:30' },
+  { value: 'MAO', label: '묘시(卯時) 05:30 ~ 07:30' },
+  { value: 'CHEN', label: '진시(辰時) 07:30 ~ 09:30' },
+  { value: 'SI', label: '사시(巳時) 09:30 ~ 11:30' },
+  { value: 'WU', label: '오시(午時) 11:30 ~ 13:30' },
+  { value: 'WEI', label: '미시(未時) 13:30 ~ 15:30' },
+  { value: 'SHEN', label: '신시(申時) 15:30 ~ 17:30' },
+  { value: 'YOU', label: '유시(酉時) 17:30 ~ 19:30' },
+  { value: 'XU', label: '술시(戌時) 19:30 ~ 21:30' },
+  { value: 'HAI', label: '해시(亥時) 21:30 ~ 23:30' },
+] as const;
+
+const SIJIN_LABELS = ZAMI_SIJIN_OPTIONS.map((o) => o.label);
+
+// 시진 표준값 → 한국 표준시 기준 대표 hour(0-23). 엔진은 이 hour로 timeIndex를 산출한다.
+// ZI는 23으로 넘겨, generateAstrolabe에서 정자시법(다음 날 자시)으로 처리한다.
+const SIJIN_HOUR: Record<string, number> = {
+  ZI: 23, CHOU: 1, YIN: 3, MAO: 5, CHEN: 7, SI: 9,
+  WU: 11, WEI: 13, SHEN: 15, YOU: 17, XU: 19, HAI: 21,
+};
+
 interface PickerCfg {
   title: string;
   options: string[];
@@ -18,21 +47,6 @@ interface PickerCfg {
 
 export function Input({ nav }: { nav: Nav }) {
   const router = useRouter();
-  const TIMES = [
-    '子時 (23:00~01:00)',
-    '丑時 (01:00~03:00)',
-    '寅時 (03:00~05:00)',
-    '卯時 (05:00~07:00)',
-    '辰時 (07:00~09:00)',
-    '巳時 (09:00~11:00)',
-    '午時 (11:00~13:00)',
-    '未時 (13:00~15:00)',
-    '申時 (15:00~17:00)',
-    '酉時 (17:00~19:00)',
-    '戌時 (19:00~21:00)',
-    '亥時 (21:00~23:00)',
-    '태어난 시간 모름',
-  ];
   const YEARS: string[] = [];
   for (let y = 2012; y >= 1950; y--) YEARS.push(y + '년');
   const MONTHS: string[] = [];
@@ -181,7 +195,7 @@ export function Input({ nav }: { nav: Nav }) {
         </div>
         <div>
           <Label req>태어난 시간</Label>
-          <TapField ph="시진을 선택하세요" onClick={() => openPicker('태어난 시간 (12시진)', TIMES, time, setTime)}>
+          <TapField ph="시진을 선택하세요" onClick={() => openPicker('태어난 시간 (12시진)', SIJIN_LABELS, time, setTime)}>
             {time}
           </TapField>
         </div>
@@ -258,13 +272,10 @@ function safeParseJSON(raw: string): any {
   }
 }
 
-// 한국 표준시 hour(0-23). 23시는 자시 = 같은 시진.
-function timeToHour(time: string): number {
-  if (!time || time.includes('모름')) return 12; // 시 모름 → 정오로 가정
-  const map: Record<string, number> = {
-    '子': 23, '丑': 1, '寅': 3, '卯': 5, '辰': 7, '巳': 9,
-    '午': 11, '未': 13, '申': 15, '酉': 17, '戌': 19, '亥': 21,
-  };
-  const ch = time[0];
-  return map[ch] ?? 12;
+// 선택한 시진 라벨 → 한국 표준시 기준 대표 hour(0-23).
+// 자시(ZI)는 23으로 반환 → 엔진에서 정자시법(다음 날 자시)으로 처리. 모름/미상은 정오(12).
+function timeToHour(label: string): number {
+  const opt = ZAMI_SIJIN_OPTIONS.find((o) => o.label === label);
+  if (!opt || opt.value === 'UNKNOWN') return 12;
+  return SIJIN_HOUR[opt.value] ?? 12;
 }
