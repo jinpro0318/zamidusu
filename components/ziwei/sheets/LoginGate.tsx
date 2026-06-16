@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { GoogleBtn } from '@/components/ziwei/atoms';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { authCallbackUrl } from '@/lib/site-url';
 import type { GateState } from '@/lib/ziwei-types';
 
 const COPY: Record<string, { badge: string; t: string; s: string }> = {
@@ -42,7 +43,7 @@ export function LoginGate({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(callbackUrl)}`,
+          redirectTo: authCallbackUrl(callbackUrl),
         },
       });
       if (error) throw error;

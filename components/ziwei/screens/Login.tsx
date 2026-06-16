@@ -7,6 +7,7 @@ import { Z, SERIF, SANS } from '@/theme/tokens';
 import { PrimaryBtn, GoogleBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput } from '@/components/ziwei/common';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { authCallbackUrl } from '@/lib/site-url';
 import type { Nav } from '@/lib/ziwei-types';
 import { toast } from 'sonner';
 
@@ -29,7 +30,7 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
         const { error } = await supabase.auth.signUp({
           email,
           password: pw,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(callbackUrl ?? '/mypage')}` },
+          options: { emailRedirectTo: authCallbackUrl(callbackUrl ?? '/mypage') },
         });
         if (error) throw error;
         toast.success('확인 이메일을 보냈어요. 메일함을 확인해주세요.');
@@ -56,7 +57,7 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(callbackUrl ?? '/mypage')}`,
+          redirectTo: authCallbackUrl(callbackUrl ?? '/mypage'),
         },
       });
       if (error) throw error;
