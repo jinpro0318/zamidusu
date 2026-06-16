@@ -1,123 +1,87 @@
 'use client';
 
 // components/ziwei/premium/PremiumSection.tsx
-// 차트 결과 페이지 하단의 "프리미엄(회원 전용) 기능" 섹션.
-//   - 비로그인: 4개 기능을 "로그인하면 열려요" 잠금 미리보기 카드(제목+한 줄 설명+🔒) 그리드로
-//   - 로그인:   각 기능의 실제 컴포넌트 영역(현재는 플레이스홀더)으로 전환
-// 로그인 여부는 상위(서버 Supabase 세션)에서 내려온 loggedIn prop 재사용.
-import type { ComponentType } from 'react';
+// "✦ 더 깊이 알아보기" — 무료 구간(차트+간단 풀이) 아래에서 프리미엄 4기능을 "소개"하는 섹션.
+//   - 카드는 항상 미리보기로 노출(제목 + 한 줄 설명 + 아이콘). 잠금은 은은하게(위협적이지 않게).
+//   - 탭 동작은 상위(Result)가 권한으로 분기(onSelect):
+//       회원/유료 → 해당 기능 경로로 이동 / 비로그인 → 가입 바텀시트(복귀 경로 포함).
+// TODO(권한): loggedIn 외 유료 구독 플래그(isPremium)로 추가 분기.
+// TODO(콘텐츠): 각 기능 페이지(상세풀이/타임라인/궁합/알림)의 실제 로직.
 import { Z, SANS, SERIF } from '@/theme/tokens';
-import type { Area } from '@/lib/ziwei-types';
-import { FullReadingSection, type PremiumFeatureProps } from './FullReadingSection';
-import { TimelineSection } from './TimelineSection';
-import { CompatibilitySection } from './CompatibilitySection';
-import { MonthlyAlertSection } from './MonthlyAlertSection';
 
-interface FeatureMeta {
+export interface PremiumFeature {
   key: string;
   icon: string;
   title: string;
   desc: string;
-  Component: ComponentType<PremiumFeatureProps>;
+  /** 활성화 시 이동할 내부 경로 (기존 라우트 재사용) */
+  href: string;
 }
 
-const FEATURES: FeatureMeta[] = [
-  { key: 'full', icon: '🗂️', title: '12궁 전체 상세 풀이', desc: '열두 자리를 모두 깊이 있게', Component: FullReadingSection },
-  { key: 'timeline', icon: '📈', title: '대운·세운 타임라인', desc: '시기별 운의 흐름을 한눈에', Component: TimelineSection },
-  { key: 'compat', icon: '💞', title: '궁합·인연 분석', desc: '상대와의 인연을 명반으로 비교', Component: CompatibilitySection },
-  { key: 'alert', icon: '🔔', title: '월간 운세 알림', desc: '매달 내 운세를 챙겨드려요', Component: MonthlyAlertSection },
-];
+// 기존 라우트로 매핑: 상세풀이 /chart/[id]/ai, 타임라인 /chart/[id]/timeline,
+// 궁합 /compatibility, 월간알림 /mypage
+export function premiumFeatures(chartId?: string): PremiumFeature[] {
+  const cid = chartId ?? '';
+  return [
+    { key: 'full', icon: '🗂️', title: '12궁 전체 상세 풀이', desc: '열두 자리를 모두 깊이 있게', href: `/chart/${cid}/ai` },
+    { key: 'timeline', icon: '📈', title: '대운·세운 타임라인', desc: '시기별 운의 흐름을 한눈에', href: `/chart/${cid}/timeline` },
+    { key: 'compat', icon: '💞', title: '궁합·인연 분석', desc: '상대와의 인연을 명반으로 비교', href: '/compatibility' },
+    { key: 'alert', icon: '🔔', title: '월간 운세 알림', desc: '매달 내 운세를 챙겨드려요', href: '/mypage' },
+  ];
+}
 
 export function PremiumSection({
   loggedIn,
   chartId,
-  areas,
-  onJoin,
+  onSelect,
 }: {
+  /** 프리미엄 접근 권한(로그인/유료). 카드 잠금 표시·CTA 문구 결정에만 사용. */
   loggedIn: boolean;
   chartId?: string;
-  areas?: Area[];
-  onJoin: () => void;
+  /** 카드 탭 → 상위에서 권한 분기(이동/게이트) */
+  onSelect: (href: string) => void;
 }) {
+  const features = premiumFeatures(chartId);
   return (
-    <section style={{ padding: '4px 18px 26px' }}>
-      {/* 섹션 헤더 */}
+    <section style={{ padding: '8px 18px 30px' }}>
+      {/* 섹션 헤더 — 무료 구간과 분리되는 "더 깊이 알아보기" 입구 */}
       <div style={{ marginBottom: 12 }}>
         <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, color: Z.p600, letterSpacing: '0.06em' }}>
-          PREMIUM · 회원 전용
+          ✦ 더 깊이 알아보기
         </div>
-        <h2 style={{ margin: '3px 0 0', fontFamily: SERIF, fontSize: 18, fontWeight: 800, color: Z.ink, letterSpacing: '-0.01em' }}>
-          {loggedIn ? '내 프리미엄 풀이' : '로그인하면 열리는 깊은 풀이'}
+        <h2 style={{ margin: '3px 0 0', fontFamily: SERIF, fontSize: 17, fontWeight: 800, color: Z.ink, letterSpacing: '-0.01em' }}>
+          {loggedIn ? '내게 맞는 깊은 풀이' : '가입하면 더 깊은 풀이가 열려요'}
         </h2>
       </div>
 
-      {loggedIn ? (
-        // 로그인: 실제 컴포넌트 영역 스택 (현재는 플레이스홀더)
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {FEATURES.map((f) => (
-            <f.Component key={f.key} chartId={chartId} areas={areas} />
-          ))}
-        </div>
-      ) : (
-        // 비로그인: 잠금 미리보기 카드 그리드 + 단일 CTA
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {FEATURES.map((f) => (
-              <LockedFeatureCard key={f.key} icon={f.icon} title={f.title} desc={f.desc} onClick={onJoin} />
-            ))}
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {features.map((f) => (
           <button
+            key={f.key}
             type="button"
-            onClick={onJoin}
+            onClick={() => onSelect(f.href)}
+            aria-label={loggedIn ? f.title : `${f.title} — 가입하면 열려요`}
             style={{
-              width: '100%', marginTop: 12, cursor: 'pointer',
-              fontFamily: SANS, fontSize: 14.5, fontWeight: 800, color: Z.ink,
-              border: 'none', borderRadius: 14, padding: '13px',
-              background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
-              boxShadow: '0 6px 18px rgba(199,162,63,0.4)',
+              position: 'relative',
+              display: 'flex', flexDirection: 'column', gap: 5,
+              textAlign: 'left', cursor: 'pointer',
+              background: Z.white, border: `1px solid ${Z.line}`,
+              borderRadius: 16, padding: '13px 13px 14px', minHeight: 100,
             }}
           >
-            로그인하고 전체 기능 열기
+            {/* 은은한 잠금 표시 — 비로그인에게만, 작고 옅게 */}
+            {!loggedIn && (
+              <span aria-hidden style={{ position: 'absolute', top: 11, right: 12, fontSize: 11, opacity: 0.55 }}>🔒</span>
+            )}
+            <span aria-hidden style={{ fontSize: 20 }}>{f.icon}</span>
+            <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3, paddingRight: 14 }}>{f.title}</span>
+            <span style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.45 }}>{f.desc}</span>
+            <span style={{ marginTop: 'auto', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>
+              {loggedIn ? '보러 가기 →' : '가입하고 보기 →'}
+            </span>
           </button>
-        </>
-      )}
+        ))}
+      </div>
     </section>
-  );
-}
-
-// 비로그인용 잠금 미리보기 카드 — 제목 + 한 줄 설명 + 🔒. 클릭 시 로그인 유도.
-function LockedFeatureCard({
-  icon,
-  title,
-  desc,
-  onClick,
-}: {
-  icon: string;
-  title: string;
-  desc: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`${title} — 로그인하면 열려요`}
-      style={{
-        position: 'relative',
-        display: 'flex', flexDirection: 'column', gap: 5,
-        textAlign: 'left', cursor: 'pointer',
-        background: Z.white,
-        border: `1px solid ${Z.line}`,
-        borderRadius: 16,
-        padding: '13px 13px 14px',
-        minHeight: 96,
-      }}
-    >
-      <span aria-hidden style={{ position: 'absolute', top: 11, right: 12, fontSize: 13, opacity: 0.7 }}>🔒</span>
-      <span aria-hidden style={{ fontSize: 18 }}>{icon}</span>
-      <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3, paddingRight: 16 }}>{title}</span>
-      <span style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.45 }}>{desc}</span>
-      <span style={{ marginTop: 'auto', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>로그인하면 열려요</span>
-    </button>
   );
 }

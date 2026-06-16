@@ -1,21 +1,20 @@
 'use client';
 
 // screens/Result.tsx — 메인 결과 화면 (명반 차트 + 12영역 통합 스크롤 페이지)
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
 import { PalaceModal } from '@/components/ziwei/sheets/PalaceModal';
-import { JoinBottomSheet } from '@/components/ziwei/sheets/JoinBottomSheet';
 import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
 import { annotateStar, annotatePalace } from '@/lib/glossary';
-import { TEST_DETAIL_OPEN } from '@/lib/feature-flags';
 import type { Area, GateState, Nav } from '@/lib/ziwei-types';
 
 interface ResultProps {
@@ -29,9 +28,10 @@ interface ResultProps {
 }
 
 export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, chartId }: ResultProps) {
+  const router = useRouter();
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
-  // 테스트 기간엔 비로그인도 상세 풀이 열람 가능(잠금 표시는 유지). 정식 게이팅 복원은 플래그로.
-  const detailAccessible = loggedIn || TEST_DETAIL_OPEN;
+  // 권한: 로그인 = 프리미엄 접근. TODO(구독): 유료 플래그(isPremium)로 추가 분기.
+  const canAccessPremium = loggedIn;
   const [showAll, setShowAll] = useState(false);
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
@@ -41,51 +41,21 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
   // 탭한 궁의 풀이 모달 (cn key). null이면 닫힘.
   const [modalKey, setModalKey] = useState<string | null>(null);
 
-  // 비회원 가입 바: "12영역 풀이" 섹션에 들어왔을 때만 노출 + X로 세션 동안 닫힘.
-  const joinSectionRef = useRef<HTMLDivElement>(null);
-  const [barVisible, setBarVisible] = useState(false);
-  const [barDismissed, setBarDismissed] = useState(false);
-
-  // 세션 동안 한 번 닫았는지 복원 (클라이언트에서만)
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem('joinBarDismissed') === '1') setBarDismissed(true);
-    } catch {}
-  }, []);
-
-  // 풀이 섹션 진입/이탈을 관찰해 바 노출 토글. 로그인·닫힘 상태면 관찰 안 함.
-  useEffect(() => {
-    if (loggedIn || barDismissed) {
-      setBarVisible(false);
-      return;
-    }
-    const el = joinSectionRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(
-      ([entry]) => setBarVisible(entry.isIntersecting),
-      { rootMargin: '0px 0px -20% 0px', threshold: 0 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [loggedIn, barDismissed]);
-
-  const dismissJoinBar = () => {
-    setBarDismissed(true);
-    setBarVisible(false);
-    try {
-      sessionStorage.setItem('joinBarDismissed', '1');
-    } catch {}
-  };
-
   const modalArea = modalKey ? allAreas.find((x) => x.cn === modalKey) ?? null : null;
   const modalInfo = (modalKey && AREA_INFO[modalKey]) || { headline: '', summary: '', detail: '' };
 
-  // 상세 풀이 게이트 → 회원가입 모달(LoginGate) 오픈. 로그인 후 해당 궁 상세로 복귀.
-  // 궁 모달을 닫고 게이트를 띄워야 z-index 충돌 없이 게이트가 위로 올라온다.
-  const openJoinGate = (key?: string) => {
+  // 프리미엄 진입 게이트 → 하단 바텀시트(LoginGate)로 "가입하면 열려요" + 로그인/가입.
+  // next: 로그인 후 복귀할 내부 경로. 궁 모달이 떠 있으면 닫고 게이트를 위로 올린다.
+  const openJoinGate = (next?: string) => {
     setModalKey(null);
-    setPendingHref(key ? nav.hrefFor('detail', { key }) : null);
+    setPendingHref(next ?? null);
     setGate({ reason: 'detail', onSuccess: null });
+  };
+
+  // 카드/버튼 활성화: 접근 권한 있으면 해당 경로로, 없으면 게이트(복귀 경로 포함).
+  const activate = (href: string) => {
+    if (canAccessPremium) router.push(href);
+    else openJoinGate(href);
   };
 
   // 비회원이 공유를 누르면 공유 시트 대신 가입 모달(게이트)로 유도. 로그인 후 이 명반으로 복귀.
@@ -235,8 +205,8 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
         </div>
       </div>
 
-      {/* ── 12 영역 리스트 ── */}
-      <div ref={joinSectionRef} style={{ padding: '8px 18px 18px', flex: 1 }}>
+      {/* ── 12 영역 리스트 (무료 구간 — 잠금/유도 UI 없음) ── */}
+      <div style={{ padding: '8px 18px 18px', flex: 1 }}>
         <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '6px 4px 12px' }}>
           12궁을 <b style={{ color: Z.ink }}>내 인생 영역</b>으로 풀었어요 · 눌러서 자세히 보기
         </p>
@@ -273,31 +243,23 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
                     )}
                   </div>
                 </div>
-                {/* 상세 풀이 진입 — 간단 풀이 아래에 직접 배치. 비로그인은 잠금 표시 + 로그인 유도 */}
+                {/* 상세 풀이 진입 — 잠금 표시 없는 깔끔한 CTA. 탭하면 권한에 따라 분기:
+                    회원/유료 → 상세 풀이 모달, 비로그인 → 가입 바텀시트(복귀 경로 포함) */}
                 <button
                   type="button"
-                  onClick={() => (detailAccessible ? setModalKey(a.cn) : openJoinGate(a.cn))}
-                  aria-disabled={!detailAccessible || undefined}
-                  aria-label={
-                    loggedIn
-                      ? `${a.ko} 상세 풀이 보기`
-                      : `${a.ko} 상세 풀이 — 로그인 필요`
+                  onClick={() =>
+                    canAccessPremium
+                      ? setModalKey(a.cn)
+                      : openJoinGate(nav.hrefFor('detail', { key: a.cn }))
                   }
-                  // 로그인: 밝은 바이올렛 CTA(.detail-cta, 호버/탭 글로우) / 비로그인: 잠금 점선
-                  className={loggedIn ? 'detail-cta' : undefined}
+                  aria-label={`${a.ko} 상세 풀이 보기`}
+                  className="detail-cta"
                   style={{
                     marginTop: 11, width: '100%', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     fontFamily: SANS, fontSize: 13.5, fontWeight: 700, borderRadius: 12, padding: '10px 12px',
-                    ...(loggedIn
-                      ? {}
-                      : {
-                          color: Z.ink3, border: `1px dashed ${Z.line}`,
-                          background: 'transparent',
-                        }),
                   }}
                 >
-                  {!loggedIn && <span aria-hidden>🔒</span>}
                   상세 풀이 보기
                   <span aria-hidden style={{ fontWeight: 800 }}>→</span>
                 </button>
@@ -318,16 +280,12 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
         </button>
       </div>
 
-      {/* 프리미엄(회원 전용) 기능 — 비로그인은 잠금 미리보기, 로그인은 실제 영역 */}
+      {/* ✦ 더 깊이 알아보기 — 프리미엄 4기능 소개. 탭 시 권한 분기(activate). */}
       <PremiumSection
-        loggedIn={loggedIn}
+        loggedIn={canAccessPremium}
         chartId={chartId}
-        areas={allAreas}
-        onJoin={() => openJoinGate()}
+        onSelect={activate}
       />
-
-      {/* 비회원: 하단 고정 가입 바(JoinBottomSheet)에 마지막 콘텐츠가 가리지 않도록 여유 */}
-      {!loggedIn && <div aria-hidden style={{ height: 72 }} />}
 
       <ShareSheet
         open={share}
@@ -337,27 +295,15 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
         chartId={chartId}
         title={subjectName}
       />
-      {/* 궁 풀이 모달 — 간단 풀이 항상 노출. 상세 풀이/AI 상세 화면은 테스트 기간 게스트도 접근 가능.
-          (onOpenFull은 modalKey만 있으면 전달하고, 버튼 노출은 PalaceModal 내부 분기가 제어) */}
+      {/* 궁 상세 풀이 모달 — 회원/유료만 진입(비로그인은 카드에서 게이트로 분기). */}
       <PalaceModal
         area={modalArea}
         info={modalInfo}
         loggedIn={loggedIn}
         onClose={() => setModalKey(null)}
-        onJoin={() => openJoinGate(modalKey ?? undefined)}
+        onJoin={() => openJoinGate(modalKey ? nav.hrefFor('detail', { key: modalKey }) : undefined)}
         onOpenFull={modalKey ? () => nav.go('detail', { key: modalKey }) : undefined}
       />
-
-      {/* 비회원 전용 — 풀이 섹션 진입 시 등장하는 가입 유도 바텀시트.
-          닫기(X)/이탈 시에도 slide-down 퇴장이 보이도록 마운트는 유지하고 visible로만 제어. */}
-      {!loggedIn && (
-        <JoinBottomSheet
-          visible={barVisible}
-          onJoin={() => openJoinGate()}
-          onLogin={() => openJoinGate()}
-          onClose={dismissJoinBar}
-        />
-      )}
 
       <LoginGate
         gate={gate}
