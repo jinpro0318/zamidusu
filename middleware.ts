@@ -44,7 +44,7 @@ export async function middleware(req: NextRequest) {
   if (LOGIN_REQUIRED.some((p) => pathname.startsWith(p)) && !hasUser) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = "/sign-in";
-    redirectUrl.searchParams.set("callbackUrl", pathname);
+    redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
