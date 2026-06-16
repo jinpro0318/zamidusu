@@ -108,6 +108,16 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
           0%, 100% { transform: translateY(0); opacity: 0.85; }
           50% { transform: translateY(6px); opacity: 1; }
         }
+        /* "상세 풀이 보기" 전용 CTA — 밝은 바이올렛 + 호버/탭 글로우 */
+        .detail-cta {
+          color: #fff;
+          border: none;
+          background: linear-gradient(135deg, ${Z.detailCtaFrom}, ${Z.detailCtaTo});
+          box-shadow: 0 4px 12px rgba(139,92,246,0.35);
+          transition: filter .15s ease, box-shadow .15s ease;
+        }
+        .detail-cta:hover { filter: brightness(1.07); box-shadow: 0 6px 18px rgba(139,92,246,0.5); }
+        .detail-cta:active { filter: brightness(1.03); box-shadow: 0 3px 10px rgba(139,92,246,0.45); }
       `}</style>
 
       {/* ── 통합 다크 패널: 헤더 + 명반 차트 ── */}
@@ -273,17 +283,14 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
                       ? `${a.ko} 상세 풀이 보기`
                       : `${a.ko} 상세 풀이 — 로그인 필요`
                   }
+                  // 로그인: 밝은 바이올렛 CTA(.detail-cta, 호버/탭 글로우) / 비로그인: 잠금 점선
+                  className={loggedIn ? 'detail-cta' : undefined}
                   style={{
                     marginTop: 11, width: '100%', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     fontFamily: SANS, fontSize: 13.5, fontWeight: 700, borderRadius: 12, padding: '10px 12px',
                     ...(loggedIn
-                      ? {
-                          // 깔끔한 노란색 — 칙칙한 올리브골드/검정 섞임 제거
-                          color: '#6B4E0E', border: 'none',
-                          background: 'linear-gradient(180deg,#FFD95E,#F5C32E)',
-                          boxShadow: '0 4px 12px rgba(245,195,46,0.35)',
-                        }
+                      ? {}
                       : {
                           color: Z.ink3, border: `1px dashed ${Z.line}`,
                           background: 'transparent',
