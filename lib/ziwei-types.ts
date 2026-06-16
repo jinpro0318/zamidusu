@@ -56,9 +56,14 @@ export interface Area {
 }
 
 export interface AreaDetail {
-  about: string;
-  star: string;
-  ai: string;
+  /** 한 줄 요약 (15~25자). area.line과 동일 내용 — 모달/상세 헤드라인 */
+  headline: string;
+  /** 무료 "간단 풀이" — 주성 기준 성격/강점/특징 한 문단 (80~120자) */
+  summary: string;
+  /** 회원 전용 "상세 풀이" — 기질→발현→주의→조언 흐름, 2~4문단 (300~500자) */
+  detail: string;
+  /** 이 자리가 무엇을 보는 자리인지 한 줄 부가 설명 (선택, 작은 캡션) */
+  scope?: string;
 }
 
 export interface SuggestedQuestion {

@@ -1,7 +1,7 @@
 'use client';
 
 // screens/Result.tsx — 메인 결과 화면 (명반 차트 + 12영역 통합 스크롤 페이지)
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
@@ -37,8 +37,44 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
   // 탭한 궁의 풀이 모달 (cn key). null이면 닫힘.
   const [modalKey, setModalKey] = useState<string | null>(null);
 
+  // 비회원 가입 바: "12영역 풀이" 섹션에 들어왔을 때만 노출 + X로 세션 동안 닫힘.
+  const joinSectionRef = useRef<HTMLDivElement>(null);
+  const [barVisible, setBarVisible] = useState(false);
+  const [barDismissed, setBarDismissed] = useState(false);
+
+  // 세션 동안 한 번 닫았는지 복원 (클라이언트에서만)
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('joinBarDismissed') === '1') setBarDismissed(true);
+    } catch {}
+  }, []);
+
+  // 풀이 섹션 진입/이탈을 관찰해 바 노출 토글. 로그인·닫힘 상태면 관찰 안 함.
+  useEffect(() => {
+    if (loggedIn || barDismissed) {
+      setBarVisible(false);
+      return;
+    }
+    const el = joinSectionRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      ([entry]) => setBarVisible(entry.isIntersecting),
+      { rootMargin: '0px 0px -20% 0px', threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loggedIn, barDismissed]);
+
+  const dismissJoinBar = () => {
+    setBarDismissed(true);
+    setBarVisible(false);
+    try {
+      sessionStorage.setItem('joinBarDismissed', '1');
+    } catch {}
+  };
+
   const modalArea = modalKey ? allAreas.find((x) => x.cn === modalKey) ?? null : null;
-  const modalInfo = (modalKey && AREA_INFO[modalKey]) || { about: '', star: '', ai: '' };
+  const modalInfo = (modalKey && AREA_INFO[modalKey]) || { headline: '', summary: '', detail: '' };
 
   // 상세 풀이 게이트 → 회원가입 모달(LoginGate) 오픈. 로그인 후 해당 궁 상세로 복귀.
   // 궁 모달을 닫고 게이트를 띄워야 z-index 충돌 없이 게이트가 위로 올라온다.
@@ -177,41 +213,52 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
       {/* ── 12 영역 리스트 ── */}
       {/* 비회원: 접이식 가입 바(기본 얇은 바)에 가리지 않도록 하단 여유 패딩.
           펼치면 일시적으로 콘텐츠를 덮지만 사용자가 접을 수 있음. */}
-      <div style={{ padding: loggedIn ? '8px 18px 26px' : '8px 18px 92px', flex: 1 }}>
+      <div ref={joinSectionRef} style={{ padding: loggedIn ? '8px 18px 26px' : '8px 18px 92px', flex: 1 }}>
         <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '6px 4px 12px' }}>
           12궁을 <b style={{ color: Z.ink }}>내 인생 영역</b>으로 풀었어요 · 눌러서 자세히 보기
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {list.map((a) => (
-            <button
-              key={a.cn}
-              type="button"
-              onClick={() => setModalKey(a.cn)}
-              aria-label={`${a.ko} (${a.cn}) 풀이 보기`}
-              style={{
-                display: 'flex', gap: 13, alignItems: 'center',
-                background: Z.white, border: `1px solid ${a.sel ? Z.p100 : Z.line}`,
-                borderRadius: 18, padding: '12px 14px',
-                boxShadow: '0 2px 10px rgba(36,26,61,0.04)',
-                color: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%',
-              }}
-            >
-              <AreaIcon h={a.h} size={44} sel={a.sel} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontFamily: SANS, fontSize: 15.5, fontWeight: 700, color: Z.ink }}>{a.ko}</span>
-                  <span style={{ fontFamily: SERIF, fontSize: 12, color: Z.ink3 }}>{a.cn}</span>
-                  <Brightness b={a.br} />
+          {list.map((a) => {
+            // headline(=line) + summary(간단 풀이)는 로그인 여부와 무관하게 항상 무료 노출.
+            // 상세 풀이는 카드를 열면 나오는 모달의 '상세 풀이' 탭에서만 (로그인 시) 제공.
+            const cardInfo = AREA_INFO[a.cn];
+            const headline = cardInfo?.headline || a.line;
+            return (
+              <button
+                key={a.cn}
+                type="button"
+                onClick={() => setModalKey(a.cn)}
+                aria-label={`${a.ko} (${a.cn}) 풀이 보기`}
+                style={{
+                  display: 'flex', gap: 13, alignItems: 'flex-start',
+                  background: Z.white, border: `1px solid ${a.sel ? Z.p100 : Z.line}`,
+                  borderRadius: 18, padding: '13px 14px',
+                  boxShadow: '0 2px 10px rgba(36,26,61,0.04)',
+                  color: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%',
+                }}
+              >
+                <AreaIcon h={a.h} size={44} sel={a.sel} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontFamily: SANS, fontSize: 15.5, fontWeight: 700, color: Z.ink }}>{a.ko}</span>
+                    <span style={{ fontFamily: SERIF, fontSize: 12, color: Z.ink3 }}>{a.cn}</span>
+                    <Brightness b={a.br} />
+                  </div>
+                  <div style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 600, color: Z.ink, marginTop: 3, lineHeight: 1.45 }}>
+                    {headline}
+                  </div>
+                  {cardInfo?.summary && (
+                    <div style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 5, lineHeight: 1.55 }}>
+                      {cardInfo.summary}
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, marginTop: 3, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {a.line}
-                </div>
-              </div>
-              <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }} aria-hidden>
-                <path d="M1 1l6 6-6 6" stroke={Z.ink3} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-          ))}
+                <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0, alignSelf: 'center' }} aria-hidden>
+                  <path d="M1 1l6 6-6 6" stroke={Z.ink3} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            );
+          })}
         </div>
         <button
           onClick={() => setShowAll((s) => !s)}
@@ -248,9 +295,15 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
         }
       />
 
-      {/* 비회원 전용 — 하단 고정 가입 유도 바텀시트 */}
+      {/* 비회원 전용 — 풀이 섹션 진입 시 등장하는 가입 유도 바텀시트.
+          닫기(X)/이탈 시에도 slide-down 퇴장이 보이도록 마운트는 유지하고 visible로만 제어. */}
       {!loggedIn && (
-        <JoinBottomSheet onJoin={() => openJoinGate()} onLogin={() => openJoinGate()} />
+        <JoinBottomSheet
+          visible={barVisible}
+          onJoin={() => openJoinGate()}
+          onLogin={() => openJoinGate()}
+          onClose={dismissJoinBar}
+        />
       )}
 
       <LoginGate

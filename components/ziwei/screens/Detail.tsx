@@ -51,7 +51,7 @@ export function Detail({
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
   const key = params?.key || '命宮';
   const a = allAreas.find((x) => x.cn === key) || allAreas[0];
-  const info = AREA_INFO[key] || { about: '', star: '', ai: '' };
+  const info = AREA_INFO[key] || { headline: '', summary: '', detail: '' };
 
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
@@ -235,7 +235,7 @@ export function Detail({
             </div>
           )}
           <div style={{ fontFamily: SANS, fontSize: 14.5, color: Z.ink, lineHeight: 1.55, fontWeight: 600 }}>{a.line}</div>
-          <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, lineHeight: 1.55, marginTop: 5 }}>{info.about}</div>
+          <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, lineHeight: 1.6, marginTop: 6 }}>{info.summary}</div>
         </div>
 
         {/* ── 2단: 구조화 AI 본문 ── */}
