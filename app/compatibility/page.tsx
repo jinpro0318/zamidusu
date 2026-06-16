@@ -1,28 +1,28 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getGuestUserId } from "@/lib/guest";
 import { CompatibilityForm } from "./form";
 
 export const metadata = { title: "자미두수 궁합" };
 
 export default async function CompatibilityPage() {
   const session = await auth();
-  const userId = session?.user
-    ? ((session.user as any).id as string)
-    : await getGuestUserId();
+  // 프리미엄(회원 전용) — 게스트는 로그인 후 이 페이지로 복귀
+  if (!session?.user) {
+    redirect(`/sign-in?next=${encodeURIComponent("/compatibility")}`);
+  }
+  const userId = (session.user as any).id as string;
 
-  const charts = userId
-    ? await db.chart.findMany({
-        where: { userId },
-        select: {
-          id: true, subjectName: true,
-          birthYear: true, birthMonth: true, birthDay: true,
-          gender: true,
-        },
-        orderBy: { createdAt: "desc" },
-      })
-    : [];
+  const charts = await db.chart.findMany({
+    where: { userId },
+    select: {
+      id: true, subjectName: true,
+      birthYear: true, birthMonth: true, birthDay: true,
+      gender: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <main className="mx-auto w-full max-w-[480px] px-5 pb-16 safe-bottom min-h-dvh">
