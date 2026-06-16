@@ -67,13 +67,15 @@ export function toAreas(payload: AstrolabePayload): Area[] {
   return payload.palaces.map((p): Area => {
     const meta = defaultArea(p.name);
     const pos = POSITION[meta.cn] ?? { c: 1, r: 1 };
-    const stars = p.majorStars.map((s) => STAR_HANJA[s.name] ?? s.name);
+    // 구버전/부분 payload 방어: majorStars 누락 시 .map에서 터지지 않게 한다.
+    const majorStars = p.majorStars ?? [];
+    const stars = majorStars.map((s) => STAR_HANJA[s.name] ?? s.name);
     // 보조성: 육길·육살성(minorStars) 전부 + 주요 잡성. 구버전 payload에는 없을 수 있어 방어.
     const subStars = [
       ...(p.minorStars ?? []).map((s) => s.name),
       ...(p.adjectiveStars ?? []).filter((s) => NOTABLE_ADJECTIVE.has(s.name)).map((s) => s.name),
     ];
-    const leadStar = p.majorStars[0];
+    const leadStar = majorStars[0];
     const br: BrightnessKey =
       (leadStar?.brightness && BRIGHTNESS_MAP[leadStar.brightness]) || "平";
 

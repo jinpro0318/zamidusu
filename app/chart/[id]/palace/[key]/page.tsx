@@ -23,8 +23,20 @@ export default async function PalaceDetailPage({
   const chart = await db.chart.findFirst({ where: { id, userId } });
   if (!chart) notFound();
 
-  const payload = JSON.parse(chart.payload) as AstrolabePayload;
-  const areas = toAreas(payload);
+  let areas;
+  try {
+    const payload = JSON.parse(chart.payload) as AstrolabePayload;
+    areas = toAreas(payload);
+  } catch (err) {
+    // 서버 컴포넌트 렌더 중 throw는 "This page couldn't load"로만 보이므로 원인을 로그로 남긴다.
+    console.error("[GET /chart/[id]/palace] payload 파싱/변환 실패", {
+      chartId: id,
+      palaceKey: decodeURIComponent(key),
+      iztroVersion: chart.iztroVersion,
+      err,
+    });
+    throw err;
+  }
   return (
     <DetailClient
       areas={areas}
