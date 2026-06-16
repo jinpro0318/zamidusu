@@ -21,3 +21,30 @@ export function getSiteOrigin(): string {
 export function authCallbackUrl(callbackUrl: string = '/mypage'): string {
   return `${getSiteOrigin()}/auth/callback?redirectTo=${encodeURIComponent(callbackUrl)}`;
 }
+
+// 인증 루프 방지를 위해 복귀 경로에서 제외할 경로들
+const BLOCKED_NEXT = ['/sign-in', '/sign-up', '/auth'];
+
+/**
+ * 오픈 리다이렉트 가드 — "같은 사이트 내부 경로(/로 시작)"만 허용.
+ * http(s)://·//·/\ 등 외부/프로토콜과 인증 경로는 거부하고 fallback 반환.
+ */
+export function sanitizeNextPath(next?: string | null, fallback = '/mypage'): string {
+  if (!next || typeof next !== 'string') return fallback;
+  if (!next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return fallback;
+  if (BLOCKED_NEXT.some((p) => next === p || next.startsWith(p + '/') || next.startsWith(p + '?'))) {
+    return fallback;
+  }
+  return next;
+}
+
+/** 클라이언트: 로그인 직전 현재 경로(쿼리 포함). 인증/외부 경로면 '' 반환. */
+export function captureCurrentPath(): string {
+  if (typeof window === 'undefined') return '';
+  return sanitizeNextPath(window.location.pathname + window.location.search, '');
+}
+
+/** 로그인 후 복귀 경로 결정: 명시값(next) > 로그인 직전 현재 경로 > /mypage. */
+export function resolveLoginNext(explicit?: string | null): string {
+  return sanitizeNextPath(explicit, '') || captureCurrentPath() || '/mypage';
+}

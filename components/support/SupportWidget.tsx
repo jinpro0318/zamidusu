@@ -67,20 +67,27 @@ export function SupportWidget() {
 
   return (
     <>
-      {/* 플로팅 버튼 — z-index를 하단 고정 바(120) 아래로 두어 차트 화면 바텀바와 충돌 방지 */}
+      {/* 플로팅 고객센터 버튼 — 화면 우측 하단에 항상 노출(하단 고정 바 위, 모달 아래).
+          작은 원형 아이콘이라 뒤 배경/콘텐츠를 가리지 않음. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="고객센터 · 의견 보내기"
         style={{
           position: 'fixed', right: 16, bottom: 'max(20px, env(safe-area-inset-bottom))',
-          zIndex: 90, width: 52, height: 52, borderRadius: '50%', border: 'none', cursor: 'pointer',
+          zIndex: 130, width: 52, height: 52, borderRadius: '50%', border: 'none', cursor: 'pointer',
           background: `linear-gradient(180deg,${Z.p500},${Z.p700})`,
           boxShadow: '0 6px 18px rgba(76,58,124,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        💬
+        {/* 고객센터(헤드셋) 아이콘 */}
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M5 13v-1a7 7 0 0 1 14 0v1" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+          <rect x="3" y="12.5" width="3.8" height="6.2" rx="1.9" fill="#fff" />
+          <rect x="17.2" y="12.5" width="3.8" height="6.2" rx="1.9" fill="#fff" />
+          <path d="M19 18.5v.5a3.5 3.5 0 0 1-3.5 3.5H13" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+        </svg>
       </button>
 
       {open && (

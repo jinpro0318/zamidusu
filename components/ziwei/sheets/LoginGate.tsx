@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { GoogleBtn } from '@/components/ziwei/atoms';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { authCallbackUrl } from '@/lib/site-url';
+import { authCallbackUrl, resolveLoginNext } from '@/lib/site-url';
 import type { GateState } from '@/lib/ziwei-types';
 
 const COPY: Record<string, { badge: string; t: string; s: string }> = {
@@ -22,11 +22,11 @@ const COPY: Record<string, { badge: string; t: string; s: string }> = {
 export function LoginGate({
   gate,
   onClose,
-  callbackUrl = '/',
+  callbackUrl,
 }: {
   gate: GateState | null;
   onClose: () => void;
-  /** 로그인 성공 후 돌아올 경로 (예: 보려던 궁 상세). */
+  /** 로그인 성공 후 돌아올 경로 (미지정 시 로그인 직전 현재 경로로 복귀). */
   callbackUrl?: string;
 }) {
   const router = useRouter();
@@ -43,7 +43,7 @@ export function LoginGate({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: authCallbackUrl(callbackUrl),
+          redirectTo: authCallbackUrl(resolveLoginNext(callbackUrl)),
         },
       });
       if (error) throw error;
@@ -55,7 +55,7 @@ export function LoginGate({
   };
 
   // 이메일은 /sign-in 폼으로 (이메일/비밀번호 입력 + 회원가입 탭 제공).
-  const goEmail = () => router.push(`/sign-in?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+  const goEmail = () => router.push(`/sign-in?next=${encodeURIComponent(resolveLoginNext(callbackUrl))}`);
 
   return (
     <div

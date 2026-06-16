@@ -279,9 +279,10 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
                     fontFamily: SANS, fontSize: 13.5, fontWeight: 700, borderRadius: 12, padding: '10px 12px',
                     ...(loggedIn
                       ? {
-                          color: Z.ink, border: 'none',
-                          background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
-                          boxShadow: '0 4px 12px rgba(199,162,63,0.32)',
+                          // 깔끔한 노란색 — 칙칙한 올리브골드/검정 섞임 제거
+                          color: '#6B4E0E', border: 'none',
+                          background: 'linear-gradient(180deg,#FFD95E,#F5C32E)',
+                          boxShadow: '0 4px 12px rgba(245,195,46,0.35)',
                         }
                       : {
                           color: Z.ink3, border: `1px dashed ${Z.line}`,
@@ -354,7 +355,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
       <LoginGate
         gate={gate}
         onClose={() => setGate(null)}
-        callbackUrl={pendingHref ?? '/'}
+        callbackUrl={pendingHref ?? undefined}
       />
       <Toast msg={toast} />
     </div>

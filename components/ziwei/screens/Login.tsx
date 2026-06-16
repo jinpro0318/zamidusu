@@ -7,7 +7,7 @@ import { Z, SERIF, SANS } from '@/theme/tokens';
 import { PrimaryBtn, GoogleBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput } from '@/components/ziwei/common';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
-import { authCallbackUrl } from '@/lib/site-url';
+import { authCallbackUrl, resolveLoginNext } from '@/lib/site-url';
 import type { Nav } from '@/lib/ziwei-types';
 import { toast } from 'sonner';
 
@@ -26,11 +26,12 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
     setLoading('email');
     try {
       const supabase = createSupabaseBrowserClient();
+      const next = resolveLoginNext(callbackUrl);
       if (tab === '회원가입') {
         const { error } = await supabase.auth.signUp({
           email,
           password: pw,
-          options: { emailRedirectTo: authCallbackUrl(callbackUrl ?? '/mypage') },
+          options: { emailRedirectTo: authCallbackUrl(next) },
         });
         if (error) throw error;
         toast.success('확인 이메일을 보냈어요. 메일함을 확인해주세요.');
@@ -40,7 +41,7 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
         if (error) throw error;
         // 게스트 명반을 이 계정으로 인계 (OAuth는 /auth/callback에서 처리)
         await fetch('/api/auth/adopt-guest', { method: 'POST' }).catch(() => {});
-        router.push(callbackUrl ?? '/mypage');
+        router.push(next);
         router.refresh();
       }
     } catch (e: any) {
@@ -57,7 +58,7 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: authCallbackUrl(callbackUrl ?? '/mypage'),
+          redirectTo: authCallbackUrl(resolveLoginNext(callbackUrl)),
         },
       });
       if (error) throw error;

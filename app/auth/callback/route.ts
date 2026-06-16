@@ -2,17 +2,14 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { auth } from "@/lib/auth";
 import { adoptGuestData } from "@/lib/guest";
+import { sanitizeNextPath } from "@/lib/site-url";
 
 // Supabase OAuth (Kakao 등) 콜백 — code를 세션으로 교환.
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
-  // 오픈 리다이렉트 방지 — 내부 경로(/로 시작, //·/\ 제외)만 허용.
-  const rawRedirect = url.searchParams.get("redirectTo") ?? "/mypage";
-  const redirectTo =
-    rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") && !rawRedirect.startsWith("/\\")
-      ? rawRedirect
-      : "/mypage";
+  // 오픈 리다이렉트 방지 — 내부 경로만 허용(외부/프로토콜/인증경로는 /mypage 폴백).
+  const redirectTo = sanitizeNextPath(url.searchParams.get("redirectTo"));
 
   if (!code) {
     return NextResponse.redirect(new URL("/sign-in?error=no_code", url.origin));
