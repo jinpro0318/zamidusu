@@ -13,7 +13,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
   const session = await auth();
   // 대운 타임라인은 회원 전용 — 게스트는 로그인 후 이 페이지로 복귀
   if (!session?.user) {
-    redirect(`/sign-in?callbackUrl=${encodeURIComponent(`/chart/${id}/timeline`)}`);
+    redirect(`/sign-in?next=${encodeURIComponent(`/chart/${id}/timeline`)}`);
   }
   const userId = (session.user as any).id as string;
 

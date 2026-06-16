@@ -8,7 +8,7 @@ export const metadata = { title: "마이페이지" };
 
 export default async function MyPage() {
   const session = await auth();
-  if (!session?.user) redirect("/sign-in?callbackUrl=/mypage");
+  if (!session?.user) redirect("/sign-in?next=/mypage");
   const userId = (session.user as any).id as string;
 
   const [charts, user, entitlements, compatCount] = await Promise.all([
