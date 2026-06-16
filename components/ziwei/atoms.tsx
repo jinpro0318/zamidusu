@@ -1,29 +1,111 @@
 'use client';
 
 // components/ui/atoms.tsx — shared brand atoms
+import { useEffect, useId, useRef, useState } from 'react';
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react';
-import { Z, SERIF, SANS, BR } from '@/theme/tokens';
+import { Z, SERIF, SANS, BR, BRIGHTNESS_INFO } from '@/theme/tokens';
 import type { BrightnessKey } from '@/theme/tokens';
 
-// ── brightness badge (廟旺平陷) ──
+// ── brightness badge (廟旺利陷) — 호버(데스크탑)/탭(모바일) 시 의미 툴팁 ──
+// 격자 셀·리스트 카드가 <button>이라 중첩 버튼을 피하려고 <span> 기반으로 구현.
 export function Brightness({ b, sm }: { b: string; sm?: boolean }) {
   const c = BR[b as BrightnessKey] || BR['平'];
+  const info = BRIGHTNESS_INFO[b] || BRIGHTNESS_INFO['平'];
+  const label = `별의 기운 세기 ${b} — ${info.ko}, ${info.desc}`;
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+  const tipId = useId();
+
+  // 모바일 탭 시: 바깥 탭/ESC로 닫기
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: Event) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDoc, true);
+    document.addEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('pointerdown', onDoc, true);
+      document.removeEventListener('keydown', onKey, true);
+    };
+  }, [open]);
+
   return (
-    <span
-      style={{
-        fontFamily: SERIF,
-        fontSize: sm ? 10 : 11,
-        fontWeight: 700,
-        color: c.fg,
-        background: c.bg,
-        border: `1px solid ${c.bd}`,
-        borderRadius: 6,
-        padding: sm ? '1px 5px' : '2px 6px',
-        lineHeight: 1.3,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {b}
+    <span ref={wrapRef} style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+      <span
+        role="button"
+        tabIndex={0}
+        aria-label={label}
+        aria-expanded={open}
+        aria-describedby={open ? tipId : undefined}
+        title={label}
+        onClick={(e) => {
+          // 부모 셀(버튼) 선택 동작과 충돌하지 않도록 전파 차단
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }
+        }}
+        style={{
+          fontFamily: SERIF,
+          fontSize: sm ? 10 : 11,
+          fontWeight: 700,
+          color: c.fg,
+          background: c.bg,
+          border: `1px solid ${c.bd}`,
+          borderRadius: 6,
+          padding: sm ? '1px 5px' : '2px 6px',
+          lineHeight: 1.3,
+          whiteSpace: 'nowrap',
+          cursor: 'help',
+          userSelect: 'none',
+        }}
+      >
+        {b}
+      </span>
+      {open && (
+        <span
+          id={tipId}
+          role="tooltip"
+          style={{
+            position: 'absolute',
+            bottom: 'calc(100% + 7px)',
+            right: 0,
+            zIndex: 200,
+            width: 'max-content',
+            maxWidth: 200,
+            fontFamily: SANS,
+            fontSize: 11.5,
+            fontWeight: 500,
+            lineHeight: 1.45,
+            color: '#fff',
+            background: Z.p900,
+            border: `1px solid ${Z.p700}`,
+            borderRadius: 9,
+            padding: '8px 10px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+            textAlign: 'left',
+            whiteSpace: 'normal',
+            pointerEvents: 'none',
+          }}
+        >
+          <b style={{ color: Z.goldBright, fontWeight: 800 }}>{b} · {info.ko}</b>
+          <br />
+          {info.desc}
+        </span>
+      )}
     </span>
   );
 }

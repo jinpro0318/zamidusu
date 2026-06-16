@@ -9,11 +9,13 @@ import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
 import { PalaceModal } from '@/components/ziwei/sheets/PalaceModal';
 import { JoinBottomSheet } from '@/components/ziwei/sheets/JoinBottomSheet';
+import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
-import { starWithHanja } from '@/lib/star-names';
+import { annotateStar, annotatePalace } from '@/lib/glossary';
+import { TEST_DETAIL_OPEN } from '@/lib/feature-flags';
 import type { Area, GateState, Nav } from '@/lib/ziwei-types';
 
 interface ResultProps {
@@ -28,6 +30,8 @@ interface ResultProps {
 
 export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, chartId }: ResultProps) {
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
+  // 테스트 기간엔 비로그인도 상세 풀이 열람 가능(잠금 표시는 유지). 정식 게이팅 복원은 플래그로.
+  const detailAccessible = loggedIn || TEST_DETAIL_OPEN;
   const [showAll, setShowAll] = useState(false);
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
@@ -149,11 +153,22 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
 
         {/* 명반 차트 영역 */}
         <div style={{ position: 'relative', padding: '8px 18px 16px', display: 'flex', flexDirection: 'column', gap: 11 }}>
-          <div style={{ textAlign: 'center', fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: '#fff' }}>
-            내 명반 차트
+          <div
+            style={{
+              textAlign: 'center',
+              fontFamily: SERIF,
+              // 모바일~데스크탑 반응형 (text-2xl~3xl 범위)
+              fontSize: 'clamp(24px, 6.4vw, 30px)',
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.15,
+              color: '#fff',
+            }}
+          >
+            내 명반 <span style={{ color: Z.goldBright }}>차트</span>
           </div>
-          {/* 출생정보 — 제목 바로 아래 중앙 */}
-          <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: -4 }}>
+          {/* 출생정보 — 제목 바로 아래 중앙 (제목과의 간격 정리) */}
+          <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 12, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.01em', marginTop: -5 }}>
             {subjectName ? `${subjectName} · ` : ''}{birthLabel ?? ''}
           </div>
           <Plate selKey={plateSel} onSel={setPlateSel} easy={true} areas={allAreas} />
@@ -172,17 +187,17 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                 <span style={{ fontFamily: SANS, fontSize: 15, fontWeight: 700, color: '#fff' }}>{plateCur.ko}</span>
-                <span style={{ fontFamily: SERIF, fontSize: 13, color: Z.p300 }}>{plateCur.cn}</span>
+                <span style={{ fontFamily: SERIF, fontSize: 13, color: Z.p300 }}>{annotatePalace(plateCur.cn)}</span>
                 <Brightness b={plateCur.br} />
               </div>
               <div style={{ fontFamily: SERIF, fontSize: 13, color: Z.goldBright, margin: '2px 0' }}>
                 {plateCur.stars.length > 0
-                  ? plateCur.stars.map((s) => `★${starWithHanja(s)}`).join(' · ')
-                  : '공궁(空宮)'}
+                  ? plateCur.stars.map((s) => `★${annotateStar(s)}`).join(' · ')
+                  : '공궁(空宮 — 주성이 없는 자리)'}
               </div>
               {plateCur.subStars && plateCur.subStars.length > 0 && (
                 <div style={{ fontFamily: SANS, fontSize: 11.5, color: Z.p300, margin: '0 0 2px' }}>
-                  {plateCur.subStars.join(' · ')}
+                  {plateCur.subStars.map(annotateStar).join(' · ')}
                 </div>
               )}
               <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.45 }}>{plateCur.line}</div>
@@ -211,9 +226,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
       </div>
 
       {/* ── 12 영역 리스트 ── */}
-      {/* 비회원: 접이식 가입 바(기본 얇은 바)에 가리지 않도록 하단 여유 패딩.
-          펼치면 일시적으로 콘텐츠를 덮지만 사용자가 접을 수 있음. */}
-      <div ref={joinSectionRef} style={{ padding: loggedIn ? '8px 18px 26px' : '8px 18px 92px', flex: 1 }}>
+      <div ref={joinSectionRef} style={{ padding: '8px 18px 18px', flex: 1 }}>
         <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '6px 4px 12px' }}>
           12궁을 <b style={{ color: Z.ink }}>내 인생 영역</b>으로 풀었어요 · 눌러서 자세히 보기
         </p>
@@ -224,39 +237,63 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
             const cardInfo = AREA_INFO[a.cn];
             const headline = cardInfo?.headline || a.line;
             return (
-              <button
+              <div
                 key={a.cn}
-                type="button"
-                onClick={() => setModalKey(a.cn)}
-                aria-label={`${a.ko} (${a.cn}) 풀이 보기`}
                 style={{
-                  display: 'flex', gap: 13, alignItems: 'flex-start',
                   background: Z.white, border: `1px solid ${a.sel ? Z.p100 : Z.line}`,
                   borderRadius: 18, padding: '13px 14px',
                   boxShadow: '0 2px 10px rgba(36,26,61,0.04)',
-                  color: 'inherit', textAlign: 'left', cursor: 'pointer', width: '100%',
                 }}
               >
-                <AreaIcon h={a.h} size={44} sel={a.sel} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontFamily: SANS, fontSize: 15.5, fontWeight: 700, color: Z.ink }}>{a.ko}</span>
-                    <span style={{ fontFamily: SERIF, fontSize: 12, color: Z.ink3 }}>{a.cn}</span>
-                    <Brightness b={a.br} />
-                  </div>
-                  <div style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 600, color: Z.ink, marginTop: 3, lineHeight: 1.45 }}>
-                    {headline}
-                  </div>
-                  {cardInfo?.summary && (
-                    <div style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 5, lineHeight: 1.55 }}>
-                      {cardInfo.summary}
+                <div style={{ display: 'flex', gap: 13, alignItems: 'flex-start' }}>
+                  <AreaIcon h={a.h} size={44} sel={a.sel} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span style={{ fontFamily: SANS, fontSize: 15.5, fontWeight: 700, color: Z.ink }}>{a.ko}</span>
+                      <span style={{ fontFamily: SERIF, fontSize: 12, color: Z.ink3 }}>{annotatePalace(a.cn)}</span>
+                      <Brightness b={a.br} />
                     </div>
-                  )}
+                    <div style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 600, color: Z.ink, marginTop: 3, lineHeight: 1.45 }}>
+                      {headline}
+                    </div>
+                    {cardInfo?.summary && (
+                      <div style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 5, lineHeight: 1.55 }}>
+                        {cardInfo.summary}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0, alignSelf: 'center' }} aria-hidden>
-                  <path d="M1 1l6 6-6 6" stroke={Z.ink3} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+                {/* 상세 풀이 진입 — 간단 풀이 아래에 직접 배치. 비로그인은 잠금 표시 + 로그인 유도 */}
+                <button
+                  type="button"
+                  onClick={() => (detailAccessible ? setModalKey(a.cn) : openJoinGate(a.cn))}
+                  aria-disabled={!detailAccessible || undefined}
+                  aria-label={
+                    loggedIn
+                      ? `${a.ko} 상세 풀이 보기`
+                      : `${a.ko} 상세 풀이 — 로그인 필요`
+                  }
+                  style={{
+                    marginTop: 11, width: '100%', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    fontFamily: SANS, fontSize: 13.5, fontWeight: 700, borderRadius: 12, padding: '10px 12px',
+                    ...(loggedIn
+                      ? {
+                          color: Z.ink, border: 'none',
+                          background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
+                          boxShadow: '0 4px 12px rgba(199,162,63,0.32)',
+                        }
+                      : {
+                          color: Z.ink3, border: `1px dashed ${Z.line}`,
+                          background: 'transparent',
+                        }),
+                  }}
+                >
+                  {!loggedIn && <span aria-hidden>🔒</span>}
+                  상세 풀이 보기
+                  <span aria-hidden style={{ fontWeight: 800 }}>→</span>
+                </button>
+              </div>
             );
           })}
         </div>
@@ -272,6 +309,17 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
           {showAll ? '접기 ▴' : '나머지 6개 영역 더보기 ▾'}
         </button>
       </div>
+
+      {/* 프리미엄(회원 전용) 기능 — 비로그인은 잠금 미리보기, 로그인은 실제 영역 */}
+      <PremiumSection
+        loggedIn={loggedIn}
+        chartId={chartId}
+        areas={allAreas}
+        onJoin={() => openJoinGate()}
+      />
+
+      {/* 비회원: 하단 고정 가입 바(JoinBottomSheet)에 마지막 콘텐츠가 가리지 않도록 여유 */}
+      {!loggedIn && <div aria-hidden style={{ height: 72 }} />}
 
       <ShareSheet
         open={share}

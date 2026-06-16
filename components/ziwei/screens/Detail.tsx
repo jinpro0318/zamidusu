@@ -13,7 +13,8 @@ import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
 import { QUESTIONS } from '@/data/questions';
 import { STAR_MEANINGS } from '@/data/starMeanings';
-import { starKo, starWithHanja } from '@/lib/star-names';
+import { starKo } from '@/lib/star-names';
+import { annotateStar, annotatePalace } from '@/lib/glossary';
 import type { Area, Nav, NavParams } from '@/lib/ziwei-types';
 
 const SECTION_TITLES = ['성향', '강점', '주의할 점', '조언'] as const;
@@ -162,7 +163,7 @@ export function Detail({
           <div>
             <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 800, color: '#fff', lineHeight: 1.05 }}>{a.ko}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: SERIF, fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>{a.cn}</span>
+              <span style={{ fontFamily: SERIF, fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>{annotatePalace(a.cn)}</span>
               {a.stars.length > 0 ? (
                 a.stars.map((s) => (
                   <span
@@ -173,7 +174,7 @@ export function Detail({
                       borderRadius: 8, padding: '2px 8px', whiteSpace: 'nowrap',
                     }}
                   >
-                    ★{starWithHanja(s)}
+                    ★{annotateStar(s)}
                   </span>
                 ))
               ) : (
@@ -196,7 +197,7 @@ export function Detail({
                     borderRadius: 8, padding: '2px 7px', whiteSpace: 'nowrap',
                   }}
                 >
-                  {s}
+                  {annotateStar(s)}
                 </span>
               ))}
             </div>
