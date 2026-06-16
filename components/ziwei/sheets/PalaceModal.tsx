@@ -136,9 +136,16 @@ export function PalaceModal({
 
   if (!area) return null;
 
-  // 상세 풀이 본문 (회원 전용).
+  // 상세 풀이 본문.
   const detailBody = info.detail;
   const headline = info.headline || area.line;
+
+  // 테스트 기간: 비로그인도 상세 풀이를 실제로 열람할 수 있게 임시 개방.
+  // 잠금 배지(🔒)·스타일은 "로그인 기능 표시"용으로 그대로 유지한다.
+  // 정식 로그인 게이팅으로 되돌리려면 false 로 바꾸면 된다.
+  const TEST_DETAIL_OPEN = true;
+  const detailAccessible = loggedIn || TEST_DETAIL_OPEN;
+  const showLock = !loggedIn; // 비로그인에게는 잠금 표시(🔒)만 유지
 
   // 탭 키보드 좌우 이동 (automatic activation).
   const TAB_ORDER: ('summary' | 'detail')[] = ['summary', 'detail'];
@@ -387,14 +394,14 @@ export function PalaceModal({
               id="pm-tab-detail"
               aria-selected={tab === 'detail'}
               aria-controls="pm-panel-detail"
-              aria-disabled={!loggedIn || undefined}
-              aria-label={loggedIn ? undefined : '상세 풀이, 로그인 필요'}
+              aria-disabled={!detailAccessible || undefined}
+              aria-label={showLock ? '상세 풀이 (로그인 안내 표시 · 테스트 중 열람 가능)' : undefined}
               tabIndex={tab === 'detail' ? 0 : -1}
               onClick={() => setTab('detail')}
               onKeyDown={onTabKey}
-              style={tabBtnStyle(tab === 'detail', { variant: 'gold', locked: !loggedIn })}
+              style={tabBtnStyle(tab === 'detail', { variant: 'gold', locked: showLock })}
             >
-              {!loggedIn && <span aria-hidden>🔒</span>}
+              {showLock && <span aria-hidden>🔒</span>}
               상세 풀이
             </button>
           </div>
@@ -422,7 +429,8 @@ export function PalaceModal({
             </div>
           )}
 
-          {/* 상세 풀이 패널 — 로그인: 전문 노출(블러 없음) / 비로그인: 안내 + 단일 CTA */}
+          {/* 상세 풀이 패널 — 테스트 기간: 비로그인도 전문 노출(잠금 표시는 유지).
+              정식 게이팅 복원 시(TEST_DETAIL_OPEN=false) 비로그인은 안내 + 단일 CTA로 전환됨. */}
           {tab === 'detail' && (
             <div
               key="detail"
@@ -433,8 +441,19 @@ export function PalaceModal({
               tabIndex={0}
               style={{ outline: 'none' }}
             >
-              {loggedIn ? (
+              {detailAccessible ? (
                 <>
+                  {showLock && (
+                    <div
+                      style={{
+                        fontFamily: SANS, fontSize: 12, fontWeight: 600, color: Z.p600,
+                        background: Z.p50, border: `1px solid ${Z.p100}`,
+                        borderRadius: 10, padding: '8px 11px', marginBottom: 11, lineHeight: 1.5,
+                      }}
+                    >
+                      🔓 테스트 기간이라 상세 풀이를 무료로 보여드려요 · 정식 오픈 시 로그인 후 이용
+                    </div>
+                  )}
                   <div style={{ fontFamily: SANS, fontSize: 14, color: Z.ink, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{detailBody}</div>
                   {onOpenFull && (
                     <button
