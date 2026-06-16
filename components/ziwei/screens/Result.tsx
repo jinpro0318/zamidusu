@@ -281,18 +281,15 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
         chartId={chartId}
         title={subjectName}
       />
-      {/* 궁 풀이 모달 — 간단 풀이 항상 노출, 상세 풀이는 회원 게이트 */}
+      {/* 궁 풀이 모달 — 간단 풀이 항상 노출. 상세 풀이/AI 상세 화면은 테스트 기간 게스트도 접근 가능.
+          (onOpenFull은 modalKey만 있으면 전달하고, 버튼 노출은 PalaceModal 내부 분기가 제어) */}
       <PalaceModal
         area={modalArea}
         info={modalInfo}
         loggedIn={loggedIn}
         onClose={() => setModalKey(null)}
         onJoin={() => openJoinGate(modalKey ?? undefined)}
-        onOpenFull={
-          loggedIn && modalKey
-            ? () => nav.go('detail', { key: modalKey })
-            : undefined
-        }
+        onOpenFull={modalKey ? () => nav.go('detail', { key: modalKey }) : undefined}
       />
 
       {/* 비회원 전용 — 풀이 섹션 진입 시 등장하는 가입 유도 바텀시트.
