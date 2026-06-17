@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { PrimaryBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput, TapField, PickerSheet } from '@/components/ziwei/common';
+import { SavedChartsSheet } from '@/components/ziwei/SavedChartsSheet';
 import type { Nav } from '@/lib/ziwei-types';
 import { toast } from 'sonner';
 
@@ -45,8 +46,10 @@ interface PickerCfg {
   set: (v: string) => void;
 }
 
-export function Input({ nav }: { nav: Nav }) {
+export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: boolean }) {
   const router = useRouter();
+  // 로그인 사용자만: 저장한 명반 불러오기 시트
+  const [savedOpen, setSavedOpen] = useState(false);
   const YEARS: string[] = [];
   for (let y = 2012; y >= 1950; y--) YEARS.push(y + '년');
   const MONTHS: string[] = [];
@@ -159,7 +162,36 @@ export function Input({ nav }: { nav: Nav }) {
             <div key={i} style={{ flex: 1, height: 4, borderRadius: 3, background: i < 2 ? Z.p600 : Z.line }} />
           ))}
         </div>
-        <h1 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: Z.ink, margin: '0 0 6px' }}>출생정보를 알려주세요</h1>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <h1 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: Z.ink, margin: '0 0 6px' }}>출생정보를 알려주세요</h1>
+          {/* 회원만 노출: 저장한 명반을 시트로 불러오기 (비회원은 기존 화면 그대로) */}
+          {isLoggedIn && (
+            <button
+              type="button"
+              onClick={() => setSavedOpen(true)}
+              aria-label="저장한 내 명반 불러오기"
+              style={{
+                flexShrink: 0,
+                marginTop: 2,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                cursor: 'pointer',
+                fontFamily: SANS,
+                fontSize: 13,
+                fontWeight: 700,
+                color: Z.p600,
+                background: Z.p50,
+                border: `1.5px solid ${Z.p100}`,
+                borderRadius: 18,
+                padding: '7px 13px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              📂 내 명반 불러오기
+            </button>
+          )}
+        </div>
         <p style={{ fontFamily: SANS, fontSize: 14, color: Z.ink2, margin: '0 0 22px' }}>정확할수록 명반이 정밀해져요</p>
       </div>
       <div
@@ -260,6 +292,7 @@ export function Input({ nav }: { nav: Nav }) {
         onPick={(o) => picker?.set(o)}
         onClose={() => setPicker(null)}
       />
+      {isLoggedIn && <SavedChartsSheet open={savedOpen} onClose={() => setSavedOpen(false)} />}
     </div>
   );
 }

@@ -19,36 +19,7 @@ export function Onboarding({ nav, account }: { nav: Nav; account?: { nickname: s
     >
       <StarField count={54} gold={7} />
 
-      {/* 상단 계정 버튼 — 회원만 노출(👤 닉네임 → 마이페이지).
-          비회원 '로그인'은 하단 링크와 중복이라 제거. */}
-      {account && (
-        <button
-          type="button"
-          onClick={() => nav.go('mypage')}
-          aria-label={`${account.nickname} 마이페이지로 이동`}
-          style={{
-            position: 'absolute',
-            top: 'calc(env(safe-area-inset-top) + 14px)',
-            right: 16,
-            zIndex: 5,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            maxWidth: 160,
-            cursor: 'pointer',
-            fontFamily: SANS,
-            fontSize: 13,
-            fontWeight: 700,
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.25)',
-            background: 'rgba(255,255,255,0.08)',
-            borderRadius: 18,
-            padding: '7px 13px',
-          }}
-        >
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {account.nickname}</span>
-        </button>
-      )}
+      {/* 계정명 노출 UI 제거됨(로그인 상태는 유지). 마이페이지 진입은 하단/메뉴 경로 사용. */}
       <div
         style={{
           position: 'absolute',
