@@ -59,8 +59,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             style={{ transform: 'translateZ(0)', willChange: 'transform' }}
             className="relative flex h-dvh w-full max-w-[480px] flex-col overflow-hidden bg-[#15102a]"
           >
-            {/* 콘텐츠 영역 — 자식들이 minHeight:100% 로 잡히도록 고정 높이 제공 */}
-            <div className="no-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
+            {/* 콘텐츠 영역 — 자식들이 minHeight:100% 로 잡히도록 고정 높이 제공.
+                data-scroll-root: 형제로 렌더되는 SupportWidget이 이 스크롤 컨테이너를 찾아
+                scroll 리스너를 붙이기 위한 식별자. */}
+            <div
+              data-scroll-root
+              className="no-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden"
+            >
               {children}
             </div>
             {/* 고객센터 플로팅 버튼 — 모바일 프레임 컬럼에 attach (position:fixed가 이 컬럼 기준) */}

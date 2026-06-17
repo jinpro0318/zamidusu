@@ -3,8 +3,9 @@
 // components/support/SupportWidget.tsx — 고객센터(의견 보내기).
 // 플로팅 💬 버튼 → 화면 중앙 팝업 폼 → 제출 시 완료 화면.
 // 다른 화면(마이페이지 메뉴 등)에서 window 이벤트 'open-support'로도 열 수 있음.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
+import { useHideOnScrollDown } from '@/hooks/useHideOnScrollDown';
 
 const TYPES = ['문의', '버그 신고', '기능 제안', '기타'] as const;
 
@@ -16,6 +17,27 @@ export function SupportWidget() {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // 스크롤 다운 시 숨김 / 업 시 노출.
+  // 이 페이지는 window가 아니라 안쪽 컨테이너(layout.tsx의 [data-scroll-root])가 스크롤되므로
+  // 해당 요소를 찾아 ref에 채운 뒤 useHideOnScrollDown에 전달한다.
+  // ⚠️ 이 effect는 아래 useHideOnScrollDown(=내부 effect) 호출보다 먼저 선언되어야 한다.
+  //    마운트 시 effect가 선언 순서대로 실행되어, 훅이 리스너를 붙이기 전에 ref.current가 채워진다.
+  const scrollRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    scrollRef.current = document.querySelector<HTMLElement>('[data-scroll-root]');
+  }, []);
+  const hidden = useHideOnScrollDown(scrollRef, 80);
+
+  // prefers-reduced-motion이 켜져 있으면 트랜지션 없이 처리
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReduceMotion(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   // 외부(마이페이지 '고객센터' 메뉴 등)에서 열기
   useEffect(() => {
@@ -73,6 +95,14 @@ export function SupportWidget() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="고객센터 · 의견 보내기"
+        className={[
+          // 트랜지션 (reduced-motion 시 제거)
+          reduceMotion ? '' : 'transition-all duration-300 ease-out',
+          // 아래로 스크롤 → 화면 밖으로 + 투명 + 클릭 차단 / 위로 → 복귀
+          hidden
+            ? 'translate-y-[160%] opacity-0 pointer-events-none'
+            : 'translate-y-0 opacity-100',
+        ].join(' ')}
         style={{
           position: 'fixed', right: 16, bottom: 'max(20px, env(safe-area-inset-bottom))',
           zIndex: 130, width: 52, height: 52, borderRadius: '50%', border: 'none', cursor: 'pointer',
