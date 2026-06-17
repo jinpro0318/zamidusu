@@ -4,6 +4,8 @@
 // 플로팅 💬 버튼 → 화면 중앙 팝업 폼 → 제출 시 완료 화면.
 // 다른 화면(마이페이지 메뉴 등)에서 window 이벤트 'open-support'로도 열 수 있음.
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { ChatText } from '@phosphor-icons/react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { useHideOnScrollDown } from '@/hooks/useHideOnScrollDown';
 
@@ -17,6 +19,16 @@ export function SupportWidget() {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // 플로팅 버튼은 "내 명반 차트 페이지(/chart/[id] 및 하위)"에서만 노출.
+  // 홈('/')·입력('/chart/new')·기타 경로에서는 버튼을 숨긴다.
+  // ⚠️ 위젯(모달 + 'open-support' 리스너)은 전역 마운트를 유지한다.
+  //    마이페이지 '고객센터' 메뉴가 window 'open-support' 이벤트로 이 모달을 열기 때문.
+  const pathname = usePathname();
+  const isChartPage = (() => {
+    const seg = (pathname ?? '').split('/'); // ['', 'chart', '<id>', ...]
+    return seg[1] === 'chart' && !!seg[2] && seg[2] !== 'new';
+  })();
 
   // 스크롤 다운 시 숨김 / 업 시 노출.
   // 이 페이지는 window가 아니라 안쪽 컨테이너(layout.tsx의 [data-scroll-root])가 스크롤되므로
@@ -89,8 +101,9 @@ export function SupportWidget() {
 
   return (
     <>
-      {/* 플로팅 고객센터 버튼 — 화면 우측 하단에 항상 노출(하단 고정 바 위, 모달 아래).
+      {/* 플로팅 고객센터 버튼 — 차트 페이지에서만 노출(하단 고정 바 위, 모달 아래).
           작은 원형 아이콘이라 뒤 배경/콘텐츠를 가리지 않음. */}
+      {isChartPage && (
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -111,14 +124,11 @@ export function SupportWidget() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        {/* 고객센터(헤드셋) 아이콘 */}
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M5 13v-1a7 7 0 0 1 14 0v1" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-          <rect x="3" y="12.5" width="3.8" height="6.2" rx="1.9" fill="#fff" />
-          <rect x="17.2" y="12.5" width="3.8" height="6.2" rx="1.9" fill="#fff" />
-          <path d="M19 18.5v.5a3.5 3.5 0 0 1-3.5 3.5H13" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-        </svg>
+        {/* 고객센터(의견 작성) 아이콘 — 글로 문의를 보내는 기능에 맞춰 ChatText 사용.
+            기존 흰색·26px·솔리드(fill) 외형 유지. */}
+        <ChatText size={26} color="#fff" weight="fill" aria-hidden />
       </button>
+      )}
 
       {open && (
         <div
