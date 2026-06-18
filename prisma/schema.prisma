@@ -90,6 +90,11 @@ model Chart {
   // 프리미엄 게이팅
   isPremiumUnlocked Boolean @default(false)
 
+  // 출생 시간 불확실(모름/추정) — 해석 상단 "참고용" 배지 표시용
+  timeUncertain Boolean @default(false)
+  // 저장 명반 분류 — 본인/가족/친구·지인/연인/기타
+  relation      String  @default("본인")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

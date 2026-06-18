@@ -8,6 +8,7 @@ import { useChat } from '@ai-sdk/react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { BackBar } from '@/components/ziwei/common';
 import { AiText, buildGlossary, TermLegend } from '@/components/ai/AiText';
+import { UncertainTimeBadge } from '@/components/ziwei/UncertainTimeBadge';
 import { DEEP_READING_INIT_PROMPT } from '@/lib/ai/prompt-builder';
 import type { Nav } from '@/lib/ziwei-types';
 
@@ -33,10 +34,12 @@ export function DeepReadingScreen({
   nav,
   chartId,
   subjectName,
+  timeUncertain,
 }: {
   nav: Nav;
   chartId: string;
   subjectName?: string;
+  timeUncertain?: boolean;
 }) {
   const triggered = useRef(false);
   const { messages, status, append, reload } = useChat({
@@ -74,6 +77,8 @@ export function DeepReadingScreen({
             {subjectName ? `${subjectName}의 깊은 풀이` : '내게 맞는 깊은 풀이'}
           </h1>
         </div>
+
+        {timeUncertain && <UncertainTimeBadge />}
 
         {/* 상단 안내 범례 — 본문 위에 둬서 "탭하면 뜻풀이"를 먼저 알게 한다 */}
         {hasAnswer && sections && <TermLegend />}

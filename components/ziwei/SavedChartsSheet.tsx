@@ -16,6 +16,7 @@ interface SavedChart {
   birthYear: number;
   birthMonth: number;
   birthDay: number;
+  relation?: string;
   createdAt: string;
 }
 
@@ -245,7 +246,14 @@ export function SavedChartsSheet({ open, onClose }: { open: boolean; onClose: ()
                       >
                         {label}
                       </span>
-                      <span style={{ display: 'block', fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 2 }}>{sub}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: SANS, fontSize: 12.5, color: Z.ink2, marginTop: 2 }}>
+                        <span>{sub}</span>
+                        {c.relation && c.relation !== '본인' && (
+                          <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: Z.p600, background: 'rgba(124,58,237,0.10)', borderRadius: 6, padding: '1px 6px' }}>
+                            {c.relation}
+                          </span>
+                        )}
+                      </span>
                     </button>
                     <button
                       type="button"

@@ -50,6 +50,7 @@ export default async function ChartPage({ params }: { params: Promise<{ id: stri
       loggedIn={loggedIn}
       isPaid={isPaid}
       bank={bank}
+      timeUncertain={chart.timeUncertain}
     />
   );
 }

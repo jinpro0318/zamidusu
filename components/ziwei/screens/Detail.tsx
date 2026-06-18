@@ -9,6 +9,7 @@ import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import { AiText, buildGlossary, TermLegend } from '@/components/ai/AiText';
+import { UncertainTimeBadge } from '@/components/ziwei/UncertainTimeBadge';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
 import { QUESTIONS } from '@/data/questions';
@@ -41,13 +42,14 @@ function cleanMd(text: string): string {
 }
 
 export function Detail({
-  nav, params, loggedIn, areas, chartId,
+  nav, params, loggedIn, areas, chartId, timeUncertain = false,
 }: {
   nav: Nav;
   params?: NavParams;
   loggedIn: boolean;
   areas?: Area[];
   chartId?: string;
+  timeUncertain?: boolean;
 }) {
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
   const key = params?.key || '命宮';
@@ -241,6 +243,7 @@ export function Detail({
 
         {/* ── 2단: 구조화 AI 본문 ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {timeUncertain && <UncertainTimeBadge />}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 20, height: 20, borderRadius: '50%', background: `linear-gradient(180deg,${Z.p500},${Z.p700})`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none">

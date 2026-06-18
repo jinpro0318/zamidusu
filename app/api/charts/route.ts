@@ -18,6 +18,8 @@ const InputSchema = z.object({
   hour: z.number().int().min(0).max(23),
   minute: z.number().int().min(0).max(59).default(0),
   isLeapMonth: z.boolean().optional(),
+  timeUncertain: z.boolean().optional(),
+  relation: z.string().max(20).optional(),
 });
 
 const IZTRO_VERSION = "2.5.8";
@@ -107,6 +109,8 @@ export async function POST(req: Request) {
         birthHour: input.hour,
         birthMinute: input.minute,
         isLeapMonth: input.isLeapMonth ?? false,
+        timeUncertain: input.timeUncertain ?? false,
+        relation: input.relation ?? "본인",
         payload: JSON.stringify(payload),
         iztroVersion: IZTRO_VERSION,
       },
@@ -136,6 +140,7 @@ export async function GET() {
         birthYear: true,
         birthMonth: true,
         birthDay: true,
+        relation: true,
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },

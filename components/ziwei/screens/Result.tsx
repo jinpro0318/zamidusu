@@ -10,6 +10,7 @@ import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
 import type { BankInfo } from '@/components/ziwei/sheets/DepositSheet';
 import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
+import { UncertainTimeBadge } from '@/components/ziwei/UncertainTimeBadge';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
@@ -23,6 +24,8 @@ interface ResultProps {
   subjectName?: string;
   birthLabel?: string;
   loggedIn?: boolean;
+  /** 출생 시간 불확실(모름/추정) — 상단 참고용 배지 */
+  timeUncertain?: boolean;
   /** 이 명반의 깊은풀이 결제(PAID) 여부 */
   isPaid?: boolean;
   /** 무통장입금 계좌정보(서버 env) */
@@ -31,7 +34,7 @@ interface ResultProps {
   chartId?: string;
 }
 
-export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, isPaid = false, bank, chartId }: ResultProps) {
+export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, timeUncertain = false, isPaid = false, bank, chartId }: ResultProps) {
   const router = useRouter();
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
   // 권한: 로그인 = 상세풀이(궁별) 접근. 깊은풀이는 결제(isPaid)로 별도 판정.
@@ -228,6 +231,12 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, i
           </div>
         </div>
       </div>
+
+      {timeUncertain && (
+        <div style={{ padding: '12px 18px 0' }}>
+          <UncertainTimeBadge />
+        </div>
+      )}
 
       {/* ── 12 영역 리스트 (무료 구간 — 잠금/유도 UI 없음) ── */}
       <div style={{ padding: '8px 18px 18px', flex: 1 }}>

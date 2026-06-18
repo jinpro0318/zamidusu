@@ -13,6 +13,7 @@ export function ResultClient({
   loggedIn,
   isPaid,
   bank,
+  timeUncertain,
 }: {
   areas: Area[];
   subjectName?: string;
@@ -21,6 +22,7 @@ export function ResultClient({
   loggedIn: boolean;
   isPaid?: boolean;
   bank?: BankInfo;
+  timeUncertain?: boolean;
 }) {
   const nav = useNav(chartId);
   return (
@@ -32,6 +34,7 @@ export function ResultClient({
       loggedIn={loggedIn}
       isPaid={isPaid}
       bank={bank}
+      timeUncertain={timeUncertain}
       chartId={chartId}
     />
   );

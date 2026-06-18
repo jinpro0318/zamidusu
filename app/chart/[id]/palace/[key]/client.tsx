@@ -9,11 +9,13 @@ export function DetailClient({
   palaceKey,
   chartId,
   loggedIn,
+  timeUncertain,
 }: {
   areas: Area[];
   palaceKey: string;
   chartId: string;
   loggedIn: boolean;
+  timeUncertain?: boolean;
 }) {
   const nav = useNav(chartId);
   return (
@@ -23,6 +25,7 @@ export function DetailClient({
       params={{ key: palaceKey }}
       loggedIn={loggedIn}
       chartId={chartId}
+      timeUncertain={timeUncertain}
     />
   );
 }

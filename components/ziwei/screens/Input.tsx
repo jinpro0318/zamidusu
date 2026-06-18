@@ -7,7 +7,10 @@ import { Z, SERIF, SANS } from '@/theme/tokens';
 import { PrimaryBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput, TapField, PickerSheet } from '@/components/ziwei/common';
 import { SavedChartsSheet } from '@/components/ziwei/SavedChartsSheet';
-import { SIJIN_LABELS, timeToHour } from '@/data/sijin';
+import { SIJIN_LABELS, timeToHour, mapTimeToSijin } from '@/data/sijin';
+
+const UNKNOWN_TIME_LABEL = '모름 / 시간 미상';
+const RELATIONS = ['본인', '가족', '친구·지인', '연인', '기타'] as const;
 import type { Nav } from '@/lib/ziwei-types';
 import { toast } from 'sonner';
 
@@ -58,9 +61,27 @@ export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: bool
     if (ddN > maxDay) setDd(`${maxDay}일`);
   }, [DAYS, dd]);
   const [time, setTime] = useState('');
+  const [exactTime, setExactTime] = useState(''); // "HH:MM" 직접 입력(선택)
+  const [estimated, setEstimated] = useState(false); // 시간이 정확하지 않음(추정)
   const [name, setName] = useState('');
+  const [relation, setRelation] = useState<string>('본인');
   const [picker, setPicker] = useState<PickerCfg | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // 정확 시각 입력 → 30분 보정 시진 자동 매핑(+경계 안내). 시진을 자동 선택한다.
+  const exactMapped = useMemo(() => {
+    const mt = exactTime.match(/^(\d{1,2}):(\d{2})$/);
+    if (!mt) return null;
+    const h = parseInt(mt[1], 10), mi = parseInt(mt[2], 10);
+    if (h > 23 || mi > 59) return null;
+    return mapTimeToSijin(h, mi);
+  }, [exactTime]);
+  useEffect(() => {
+    if (exactMapped) setTime(exactMapped.label);
+  }, [exactMapped]);
+
+  // 출생 시간 불확실: '모름' 선택 또는 '추정' 체크.
+  const timeUncertain = time === UNKNOWN_TIME_LABEL || estimated;
 
   const openPicker = (title: string, options: string[], value: string, set: (v: string) => void) =>
     setPicker({ title, options, value, set });
@@ -87,6 +108,8 @@ export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: bool
           gender, calendar,
           year, month, day, hour, minute: 0,
           isLeapMonth,
+          timeUncertain,
+          relation,
         }),
       });
 
@@ -204,6 +227,54 @@ export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: bool
           <TapField ph="시진을 선택하세요" onClick={() => openPicker('태어난 시간 (12시진)', SIJIN_LABELS, time, setTime)}>
             {time}
           </TapField>
+
+          {/* 정확한 시각 직접 입력(선택) — 입력 시 시진 자동 매핑 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <span style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink3, flexShrink: 0 }}>또는 정확한 시각</span>
+            <input
+              type="time"
+              value={exactTime}
+              onChange={(e) => setExactTime(e.target.value)}
+              aria-label="정확한 시각 직접 입력 (선택)"
+              style={{
+                flex: 1, boxSizing: 'border-box', background: Z.white,
+                border: `1.5px solid ${Z.line}`, borderRadius: 11, padding: '9px 11px',
+                fontFamily: SANS, fontSize: 15, color: Z.ink, outline: 'none',
+              }}
+            />
+          </div>
+          {exactMapped && (
+            <p style={{ fontFamily: SANS, fontSize: 12, color: exactMapped.nearBoundary ? '#9A5B5B' : Z.p600, margin: '6px 2px 0', lineHeight: 1.5 }}>
+              → {exactMapped.label.split(' ')[0]}으로 분석돼요{exactMapped.note ? ` · ${exactMapped.note}` : ''}
+            </p>
+          )}
+
+          {/* 추정/모름 표시 */}
+          <button
+            type="button"
+            onClick={() => setEstimated((v) => !v)}
+            aria-pressed={estimated}
+            style={{
+              marginTop: 10, display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer',
+              background: 'transparent', border: 'none', padding: 0,
+              fontFamily: SANS, fontSize: 13, color: Z.ink2,
+            }}
+          >
+            <span
+              aria-hidden
+              style={{
+                width: 18, height: 18, borderRadius: 6, flexShrink: 0,
+                border: `1.5px solid ${estimated ? Z.p600 : Z.line}`,
+                background: estimated ? Z.p600 : Z.white,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {estimated && (
+                <svg width="11" height="11" viewBox="0 0 16 16"><path d="M3 8.5l3.5 3.5L13 4" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              )}
+            </span>
+            시간이 정확하지 않아요 (추정)
+          </button>
         </div>
         <div>
           <Label req>성별</Label>
@@ -240,6 +311,12 @@ export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: bool
             이름 · 별칭 <span style={{ color: Z.ink3, fontWeight: 400 }}>(선택)</span>
           </Label>
           <TextInput value={name} onChange={setName} ph="저장할 때 표시할 이름" />
+        </div>
+        <div>
+          <Label>
+            관계 <span style={{ color: Z.ink3, fontWeight: 400 }}>(선택 · 저장 분류용)</span>
+          </Label>
+          <Seg options={[...RELATIONS]} value={relation} onChange={setRelation} />
         </div>
       </div>
       {/* sticky bottom CTA: 본문이 스크롤돼도 항상 노출, iOS 홈인디케이터 safe-area 반영 */}

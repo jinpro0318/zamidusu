@@ -34,3 +34,35 @@ export function timeToHour(label: string): number {
   if (!opt || opt.value === 'UNKNOWN') return 12;
   return SIJIN_HOUR[opt.value] ?? 12;
 }
+
+// 시진 value 순서(자→해). 30분 보정 기준 블록 인덱스 매핑용.
+const SIJIN_ORDER = ['ZI', 'CHOU', 'YIN', 'MAO', 'CHEN', 'SI', 'WU', 'WEI', 'SHEN', 'YOU', 'XU', 'HAI'] as const;
+const SIJIN_KO: Record<string, string> = {
+  ZI: '자시(子時)', CHOU: '축시(丑時)', YIN: '인시(寅時)', MAO: '묘시(卯時)', CHEN: '진시(辰時)', SI: '사시(巳時)',
+  WU: '오시(午時)', WEI: '미시(未時)', SHEN: '신시(申時)', YOU: '유시(酉時)', XU: '술시(戌時)', HAI: '해시(亥時)',
+};
+
+// 정확한 시각(HH:MM) → 30분 보정 기준 시진 매핑.
+// 자시 23:30~01:30 등 경계가 :30이므로 +30분 시프트 후 120분(2시간) 블록으로 나눈다.
+export function mapTimeToSijin(h: number, m: number): {
+  value: string;
+  label: string;
+  hour: number;
+  nearBoundary: boolean;
+  note?: string;
+} {
+  const shifted = (((h * 60 + m + 30) % 1440) + 1440) % 1440;
+  const idx = Math.floor(shifted / 120); // 0=자 … 11=해
+  const value = SIJIN_ORDER[idx];
+  const label = ZAMI_SIJIN_OPTIONS.find((o) => o.value === value)!.label;
+  const off = shifted % 120; // 블록 내 위치(분)
+  const nearBoundary = off <= 10 || off >= 110;
+  let note: string | undefined;
+  if (nearBoundary) {
+    const prev = SIJIN_KO[SIJIN_ORDER[(idx + 11) % 12]];
+    const next = SIJIN_KO[SIJIN_ORDER[(idx + 1) % 12]];
+    const neighbor = off <= 10 ? prev : next;
+    note = `입력하신 시각은 ${SIJIN_KO[value]}·${neighbor} 경계에 가까워요. 지방시 보정에 따라 앞뒤 시진일 수 있어요.`;
+  }
+  return { value, label, hour: SIJIN_HOUR[value], nearBoundary, note };
+}

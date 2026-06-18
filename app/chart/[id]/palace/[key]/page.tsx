@@ -43,6 +43,7 @@ export default async function PalaceDetailPage({
       palaceKey={decodeURIComponent(key)}
       chartId={chart.id}
       loggedIn={true}
+      timeUncertain={chart.timeUncertain}
     />
   );
 }

@@ -17,5 +17,5 @@ export default async function DeepPage({ params }: { params: Promise<{ id: strin
   const chart = await db.chart.findFirst({ where: { id, userId } });
   if (!chart) notFound();
 
-  return <DeepReadingClient chartId={chart.id} subjectName={chart.subjectName ?? undefined} />;
+  return <DeepReadingClient chartId={chart.id} subjectName={chart.subjectName ?? undefined} timeUncertain={chart.timeUncertain} />;
 }
