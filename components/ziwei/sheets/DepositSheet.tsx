@@ -119,7 +119,7 @@ export function DepositSheet({
               내게 맞는 깊은 풀이
             </div>
             <div style={{ textAlign: 'center', fontFamily: SERIF, fontSize: 22, fontWeight: 800, color: Z.ink }}>
-              1,900원 · 무통장입금
+              890원 · 무통장입금
             </div>
             <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '8px 0 16px', lineHeight: 1.55 }}>
               아래 계좌로 입금 후 입금자명을 남겨주세요.

@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 // 깊은풀이 단건 구매 — 무통장입금 신청.
 // 클라이언트는 status를 정할 수 없고 항상 PENDING(입금대기)으로만 생성/갱신된다.
 // 실제 입금확인(PENDING→PAID)은 관리자만 수행(별도).
-const DEEP_PRICE = 1900;
+const DEEP_PRICE = 890;
 
 const InputSchema = z.object({
   chartId: z.string().min(1),

@@ -112,7 +112,7 @@ export function PremiumSection({
               <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {isDeep && !isPaid && (
                   <span style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, color: Z.ink3 }}>
-                    1,900원 · 구매 후 열람
+                    890원 · 구매 후 열람
                   </span>
                 )}
                 <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>{cta}</span>
