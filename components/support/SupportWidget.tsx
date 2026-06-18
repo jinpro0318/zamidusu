@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ChatText } from '@phosphor-icons/react';
 import { Z, SERIF, SANS } from '@/theme/tokens';
-import { useHideOnScrollDown } from '@/hooks/useHideOnScrollDown';
+import { useHideWhileScrolling } from '@/hooks/useHideWhileScrolling';
 
 const TYPES = ['문의', '버그 신고', '기능 제안', '기타'] as const;
 
@@ -30,16 +30,16 @@ export function SupportWidget() {
     return seg[1] === 'chart' && !!seg[2] && seg[2] !== 'new';
   })();
 
-  // 스크롤 다운 시 숨김 / 업 시 노출.
+  // 스크롤 중 숨김 / 멈추면 다시 표시.
   // 이 페이지는 window가 아니라 안쪽 컨테이너(layout.tsx의 [data-scroll-root])가 스크롤되므로
-  // 해당 요소를 찾아 ref에 채운 뒤 useHideOnScrollDown에 전달한다.
-  // ⚠️ 이 effect는 아래 useHideOnScrollDown(=내부 effect) 호출보다 먼저 선언되어야 한다.
+  // 해당 요소를 찾아 ref에 채운 뒤 useHideWhileScrolling에 전달한다.
+  // ⚠️ 이 effect는 아래 useHideWhileScrolling(=내부 effect) 호출보다 먼저 선언되어야 한다.
   //    마운트 시 effect가 선언 순서대로 실행되어, 훅이 리스너를 붙이기 전에 ref.current가 채워진다.
   const scrollRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     scrollRef.current = document.querySelector<HTMLElement>('[data-scroll-root]');
   }, []);
-  const hidden = useHideOnScrollDown(scrollRef, 80);
+  const hidden = useHideWhileScrolling(scrollRef, 150);
 
   // prefers-reduced-motion이 켜져 있으면 트랜지션 없이 처리
   const [reduceMotion, setReduceMotion] = useState(false);
