@@ -42,7 +42,7 @@ export function DeepReadingScreen({
   timeUncertain?: boolean;
 }) {
   const triggered = useRef(false);
-  const { messages, status, append, reload } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, status, append, reload } = useChat({
     api: '/api/ai/chat',
     body: { chartId, mode: 'deep' },
     onError: (e) => console.error('[Deep AI] 깊은풀이 호출 실패', { chartId, error: e }),
@@ -56,6 +56,8 @@ export function DeepReadingScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartId]);
 
+  // 초기 종합 풀이(첫 assistant 답변)와, 그 뒤 이어지는 후속 Q&A를 분리.
+  const visibleMessages = messages.filter((m) => m.content !== DEEP_READING_INIT_PROMPT);
   const answer = messages.find((m) => m.role === 'assistant')?.content ?? '';
   const hasAnswer = answer.trim().length > 0;
   const requested = messages.length > 0;
@@ -64,11 +66,21 @@ export function DeepReadingScreen({
   const sections = hasAnswer ? parseSections(cleaned) : null;
   const glossary = useMemo(() => buildGlossary(cleaned), [cleaned]);
 
+  const firstAssistantIdx = visibleMessages.findIndex((m) => m.role === 'assistant');
+  const followUps = firstAssistantIdx >= 0 ? visibleMessages.slice(firstAssistantIdx + 1) : [];
+
+  // ── 추천 질문 칩: 올해 일/연애/재물 1인칭 질문(전체풀이 맥락의 짧은 후속 풀이) ──
+  const suggested = ['올해 제 일·직장운이 궁금해요', '올해 제 연애·관계운이 궁금해요', '올해 제 재물운이 궁금해요'];
+  const askSuggested = (q: string) => {
+    if (isLoading || !hasAnswer) return;
+    append({ role: 'user', content: `${q} 핵심만 짧게 알려주세요.` });
+  };
+
   return (
     <div style={{ minHeight: '100%', background: Z.cream, display: 'flex', flexDirection: 'column' }}>
       <style>{`@keyframes zmds-dot{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}`}</style>
       <BackBar nav={nav} title="깊은 풀이" />
-      <div style={{ padding: '0 20px 40px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ padding: '0 20px 150px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
           <div style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: Z.p600, letterSpacing: '0.04em' }}>
             ✦ 12궁을 가로지르는 종합 풀이
@@ -131,7 +143,98 @@ export function DeepReadingScreen({
           </div>
         )}
 
+        {/* ── 후속 질문 대화 (칩/입력으로 이어지는 짧은 풀이) ── */}
+        {followUps.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+            <div style={{ height: 1, background: Z.line }} />
+            <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: Z.ink2 }}>이어서 물어봤어요</div>
+            {followUps.map((m) => (
+              <div
+                key={m.id}
+                style={{
+                  alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+                  maxWidth: '88%',
+                  background: m.role === 'user' ? `linear-gradient(180deg,${Z.p600},${Z.p700})` : Z.white,
+                  color: m.role === 'user' ? '#fff' : Z.ink,
+                  border: m.role === 'user' ? 'none' : `1px solid ${Z.line}`,
+                  borderRadius: m.role === 'user' ? '18px 18px 5px 18px' : '18px 18px 18px 5px',
+                  padding: '12px 16px',
+                  fontFamily: SANS, fontSize: 14, lineHeight: 1.65, whiteSpace: 'pre-wrap',
+                }}
+              >
+                {m.role === 'user' ? m.content : <AiText text={cleanMd(m.content)} glossary={glossary} />}
+              </div>
+            ))}
+            {isLoading && followUps.at(-1)?.role === 'user' && (
+              <div style={{
+                alignSelf: 'flex-start', background: Z.white, border: `1px solid ${Z.line}`,
+                borderRadius: '18px 18px 18px 5px', padding: '12px 16px', display: 'flex', gap: 4, alignItems: 'center',
+              }}>
+                {[0, 1, 2].map((i) => (
+                  <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: Z.p500, animation: `zmds-dot 1.2s ease-in-out ${i * 0.2}s infinite`, display: 'inline-block' }} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
+
+      {/* ── 추천 질문 칩 + 이어 묻기 입력 (sticky) — 초기 풀이가 나온 뒤에만 노출 ── */}
+      {hasAnswer && (
+        <div
+          style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0,
+            padding: '8px 0 max(18px, env(safe-area-inset-bottom))',
+            background: `linear-gradient(to top, ${Z.cream} 82%, transparent)`,
+          }}
+        >
+          <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '0 16px 9px', WebkitOverflowScrolling: 'touch' }}>
+            {suggested.map((q) => (
+              <button
+                key={q}
+                onClick={() => askSuggested(q)}
+                disabled={isLoading}
+                style={{
+                  flexShrink: 0, cursor: isLoading ? 'default' : 'pointer',
+                  fontFamily: SANS, fontSize: 12.5, fontWeight: 600,
+                  color: isLoading ? Z.ink3 : Z.p600,
+                  background: Z.white, border: `1.5px solid ${Z.p100}`,
+                  borderRadius: 18, padding: '7px 13px',
+                  boxShadow: '0 2px 8px rgba(36,26,61,0.06)', whiteSpace: 'nowrap',
+                }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+          <form onSubmit={handleSubmit} style={{ padding: '0 16px' }}>
+            <div style={{ display: 'flex', gap: 9, alignItems: 'center', background: Z.white, border: `1.5px solid ${Z.p100}`, borderRadius: 18, padding: '9px 9px 9px 16px', boxShadow: '0 4px 16px rgba(36,26,61,0.08)' }}>
+              <input
+                value={input}
+                onChange={handleInputChange}
+                placeholder="더 궁금한 점을 물어보세요…"
+                disabled={isLoading}
+                style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: SANS, fontSize: 14, color: Z.ink }}
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !input.trim()}
+                aria-label="질문 보내기"
+                style={{
+                  width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: isLoading || !input.trim() ? 'default' : 'pointer',
+                  background: isLoading || !input.trim() ? Z.line : `linear-gradient(180deg,${Z.p500},${Z.p700})`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.2s',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke={isLoading || !input.trim() ? Z.ink3 : '#fff'} strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

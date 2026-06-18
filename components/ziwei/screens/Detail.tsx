@@ -123,8 +123,8 @@ export function Detail({
   const firstAssistantIdx = visibleMessages.findIndex((m) => m.role === 'assistant');
   const followUps = firstAssistantIdx >= 0 ? visibleMessages.slice(firstAssistantIdx + 1) : [];
 
-  // ── 4단(입력): 추천 질문 칩 ──
-  const suggested = [...new Set([...(QUESTIONS[key]?.map((q) => q.q).slice(0, 2) ?? []), '올해 조심할 점은?'])];
+  // ── 4단(입력): 추천 질문 칩 — 이 궁 주제의 1인칭 질문 3개(올해 흐름 중심) ──
+  const suggested = [...new Set(QUESTIONS[key]?.map((q) => q.q).slice(0, 3) ?? ['올해 제 흐름이 궁금해요'])];
   const askSuggested = (q: string) => {
     if (isLoading) return;
     append({ role: 'user', content: q });

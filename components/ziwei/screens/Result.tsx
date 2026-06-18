@@ -316,6 +316,35 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
         >
           {showAll ? '접기 ▴' : '나머지 6개 영역 더보기 ▾'}
         </button>
+
+        {/* 올해 이런 게 궁금하다면 — 주제별 칩 → 해당 궁 상세 풀이로 이동 */}
+        <div style={{ marginTop: 18 }}>
+          <p style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '0 4px 9px' }}>
+            올해 이런 게 궁금하다면, <b style={{ color: Z.ink }}>탭해서 풀이 보기</b>
+          </p>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 4px 4px', WebkitOverflowScrolling: 'touch' }}>
+            {[
+              { q: '올해 제 일·직장운이 궁금해요', key: '官祿宮' },
+              { q: '올해 제 연애·관계운이 궁금해요', key: '夫妻宮' },
+              { q: '올해 제 재물운이 궁금해요', key: '財帛宮' },
+            ].map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => openPalace(c.key)}
+                style={{
+                  flexShrink: 0, cursor: 'pointer',
+                  fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: Z.p600,
+                  background: Z.white, border: `1.5px solid ${Z.p100}`,
+                  borderRadius: 18, padding: '8px 14px',
+                  boxShadow: '0 2px 8px rgba(36,26,61,0.06)', whiteSpace: 'nowrap',
+                }}
+              >
+                {c.q}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ✦ 더 깊이 알아보기 — 테스트 기간: 결제 없이 해당 기능 페이지로 바로 이동. */}
