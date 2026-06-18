@@ -8,6 +8,7 @@ import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
+import { DepositSheet, type BankInfo } from '@/components/ziwei/sheets/DepositSheet';
 import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
@@ -22,14 +23,18 @@ interface ResultProps {
   subjectName?: string;
   birthLabel?: string;
   loggedIn?: boolean;
+  /** 이 명반의 깊은풀이 결제(PAID) 여부 */
+  isPaid?: boolean;
+  /** 무통장입금 계좌정보(서버 env) */
+  bank?: BankInfo;
   /** 공유 링크 발급에 사용할 명반 id */
   chartId?: string;
 }
 
-export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, chartId }: ResultProps) {
+export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, isPaid = false, bank, chartId }: ResultProps) {
   const router = useRouter();
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
-  // 권한: 로그인 = 프리미엄 접근. TODO(구독): 유료 플래그(isPremium)로 추가 분기.
+  // 권한: 로그인 = 상세풀이(궁별) 접근. 깊은풀이는 결제(isPaid)로 별도 판정.
   const canAccessPremium = loggedIn;
   const [showAll, setShowAll] = useState(false);
   const [share, setShare] = useState(false);
@@ -37,6 +42,22 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
   const [plateSel, setPlateSel] = useState('命宮');
   const [gate, setGate] = useState<GateState | null>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [depositOpen, setDepositOpen] = useState(false);
+
+  // 깊은풀이 진입 경로(현재 명반).
+  const deepHref = chartId ? `/chart/${chartId}/deep` : null;
+
+  // 프리미엄 카드 탭 분기:
+  //  - 깊은풀이: 비회원→로그인 게이트, 회원·미결제→무통장입금 시트, 결제완료→깊은풀이 페이지.
+  //  - 그 외: 기존 activate(로그인 분기).
+  const handlePremiumSelect = (href: string) => {
+    if (deepHref && href === deepHref) {
+      if (!loggedIn) return openJoinGate(href);
+      if (!isPaid) return setDepositOpen(true);
+      return router.push(href);
+    }
+    return activate(href);
+  };
 
   // 프리미엄 진입 게이트 → 하단 바텀시트(LoginGate)로 "가입하면 열려요" + 로그인/가입.
   // next: 로그인 후 복귀할 내부 경로.
@@ -283,12 +304,22 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
         </button>
       </div>
 
-      {/* ✦ 더 깊이 알아보기 — 프리미엄 4기능 소개. 탭 시 권한 분기(activate). */}
+      {/* ✦ 더 깊이 알아보기 — 프리미엄 기능 소개. 깊은풀이는 결제(isPaid) 기준 잠금. */}
       <PremiumSection
         loggedIn={canAccessPremium}
+        isPaid={isPaid}
         chartId={chartId}
-        onSelect={activate}
+        onSelect={handlePremiumSelect}
       />
+
+      {chartId && (
+        <DepositSheet
+          open={depositOpen}
+          onClose={() => setDepositOpen(false)}
+          chartId={chartId}
+          bank={bank ?? { name: '', account: '', holder: '' }}
+        />
+      )}
 
       <ShareSheet
         open={share}

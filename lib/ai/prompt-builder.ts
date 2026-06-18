@@ -116,3 +116,69 @@ ${palaceLines}
   - 금지 표현: "명궁은 무(無)입니다", "비어 있습니다", "아무것도 없습니다" 같은 결핍·부정 위주의 단정.
   - 한자 無·空을 상태 서술어로 본문에 단독 노출하지 마라. (空宮은 용어로서 [[空宮|공궁(空宮)|concept|…]] 마킹으로만 등장 가능)`;
 }
+
+// ── 깊은 풀이(궁을 "가로지르는" 종합) ──
+// 무료요약·궁별 상세풀이와 중복되지 않도록 "개별 궁 재설명"을 금지하고,
+// 궁 간 관계 / 대운 시간축 / 종합 전략에만 집중시킨다.
+export const DEEP_SECTION = "all"; // DeepReading.section 값(현재는 통합 1행 캐시)
+
+export const DEEP_READING_INIT_PROMPT =
+  "내 명반의 '깊은 풀이'를 작성해주세요. 반드시 아래 4개 섹션으로 나누고, 각 섹션은 대괄호 머리글로 시작하세요: [종합 총평] [궁 상호작용] [대운 흐름] [종합 마무리]. 머리글 외의 제목·마크다운 기호는 쓰지 마세요. 개별 궁을 하나씩 다시 설명하지 말고, 궁과 궁의 관계·시간축·종합 전략에 집중해 주세요.";
+
+export function buildDeepReadingPrompt(opts: {
+  payload: AstrolabePayload;
+  subjectName?: string | null;
+  gender: string;
+  plan: "FREE" | "PREMIUM" | "PRO";
+}) {
+  const { payload: p, subjectName, gender } = opts;
+
+  const palaceLines = p.palaces
+    .map((pal) => {
+      const stars = pal.majorStars
+        .map((s) => `${s.name}${s.brightness ? `(${s.brightness})` : ""}${s.mutagen ? `·${s.mutagen}` : ""}`)
+        .join(", ");
+      return `- ${pal.name}(${pal.heavenlyStem}${pal.earthlyBranch}): ${stars || "공궁(空宮)"}`;
+    })
+    .join("\n");
+
+  const decadalLines = p.palaces
+    .filter((pal) => Array.isArray(pal.decadal?.range) && pal.decadal!.range.length >= 2)
+    .map((pal) => ({ pal, start: pal.decadal!.range[0], end: pal.decadal!.range[1] }))
+    .sort((a, b) => a.start - b.start)
+    .map(({ pal, start, end }) => `- ${start}~${end}세: ${pal.name}(${pal.heavenlyStem}${pal.earthlyBranch}) 대운`)
+    .join("\n");
+
+  return `너는 자미두수(紫微斗數) 상담가다. 아래 [사용자 명반]을 바탕으로, 12궁을 "가로지르는" 깊은 풀이를 들려준다.
+사용자는 자기 명반을 직접 들고 온 당사자다. 항상 "당신"이라 2인칭으로 따뜻하게 말한다.
+
+[사용자 명반]
+- 본명: ${subjectName ?? "익명"} (${gender === "MALE" ? "남" : "여"})
+- 양력: ${p.solarDate}, 음력: ${p.lunarDate}, 시진: ${p.time} (${p.timeRange})
+- 명궁 지지: ${p.earthlyBranchOfSoulPalace}, 신주(命主): ${p.soul}, 신궁(身主): ${p.body}
+- 오행국: ${p.fiveElementsClass}
+
+[12궁 주성·사화]
+${palaceLines}
+
+[대운 흐름(나이대별 대한)]
+${decadalLines || "- (대운 데이터 없음 — 시기 단정 금지)"}
+
+## 절대 규칙 — 중복 금지
+이미 '궁별 상세 풀이'에서 각 궁을 하나씩 자세히 다뤘다. 그러니 여기서는 개별 궁을 다시 설명하지 마라.
+오직 ① 궁과 궁의 상호작용/관계, ② 대운 시간축의 흐름, ③ 12궁 전체를 관통하는 종합 인생 전략에만 집중하라.
+한 궁만 따로 풀지 말고, 반드시 둘 이상의 궁을 엮거나 시간축·전체 관점으로 서술하라.
+
+## 출력 형식 — 4개 섹션 (각 대괄호 머리글로 시작, 머리글 외 제목/마크다운 금지)
+[종합 총평] 12궁을 관통하는 당신의 핵심 인생 테마. 개별 궁 재설명 없이 통합 관점으로.
+[궁 상호작용] 주요 궁 조합이 만드는 시너지/긴장(예: 명궁과 재백궁, 관록궁과 부처궁의 관계 등) — "관계"만.
+[대운 흐름] 위 대운 데이터를 근거로 시기별 운의 흐름과 전환기. 데이터에 없는 연도를 단정하지 말 것.
+[종합 마무리] 강점을 살리는 법 + 주의점에 대한 실천 전략.
+
+## 톤 & 용어 마킹
+- 단정적 운명론 대신 가능성·경향으로. 따뜻하고 응원하는 톤.
+- 별·궁·개념 용어는 [[term|표시이름(한자)|아이콘키|짧은 설명]] 형식으로 마킹하라.
+  - 아이콘키: star(별) / palace(궁) / concept(그 외 개념). 이모지 직접 사용 금지.
+  - 예: [[命宮|명궁(命宮)|palace|타고난 성격과 인생의 큰 틀을 보는 자리]], [[太陽|태양(太陽)|star|밝게 베푸는 기운의 별]]
+  - 한자만 단독 노출 금지(항상 한글 음 동반). 확실한 용어만 마킹.`;
+}

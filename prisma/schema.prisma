@@ -34,6 +34,7 @@ model User {
   compatibilities Compatibility[]  @relation("CompatibilityOwner")
   aiDailyUsages   AiDailyUsage[]
   feedbacks       Feedback[]
+  purchases       Purchase[]
 }
 
 // ============================================================
@@ -94,6 +95,8 @@ model Chart {
 
   conversations    AiConversation[]
   palaceReadings   PalaceReading[]
+  deepReadings     DeepReading[]
+  purchases        Purchase[]
   compatibilitiesA Compatibility[]  @relation("CompatibilityA")
   compatibilitiesB Compatibility[]  @relation("CompatibilityB")
 
@@ -155,6 +158,27 @@ model AiConversation {
   @@index([userId, chartId])
 }
 
+// chart 1개 단위 "12궁 전체 상세풀이" 단건 구매.
+// 1단계: 무통장입금(method=BANK_TRANSFER) + 관리자 수동 입금확인(status PENDING→PAID).
+// 추후 PG 자동결제로 전환 시 method에 "TOSS" 등 추가(스키마 확장만으로 대응).
+model Purchase {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chartId String
+  chart   Chart  @relation(fields: [chartId], references: [id], onDelete: Cascade)
+
+  amount        Int       @default(1900)
+  method        String    @default("BANK_TRANSFER") // "BANK_TRANSFER" | (추후) "TOSS" ...
+  depositorName String? // 입금자명 (무통장입금 대조용)
+  status        String    @default("PENDING") // "PENDING"=입금대기 | "PAID"=입금확인 | "CANCELLED"
+  paidAt        DateTime? // 관리자가 입금확인한 시각
+  createdAt     DateTime  @default(now())
+
+  @@unique([userId, chartId]) // 같은 명반 중복 구매 방지
+  @@index([status, createdAt]) // 관리자 "입금대기" 목록 조회용
+}
+
 // 궁별 "초기 풀이" 캐시 — 동일 (chartId, 궁) 재방문 시 LLM 재호출 없이 즉시 반환.
 // 키에 modelVersion(실제 모델 id)·promptVersion(PROMPT_VERSION)을 포함해,
 // 모델/프롬프트가 바뀌면 키가 달라져 새 캐시가 생성되고 옛 캐시는 더 이상 조회되지 않는다(stale 방지).
@@ -174,6 +198,26 @@ model PalaceReading {
 
   @@unique([chartId, palaceKey, modelVersion, promptVersion])
   @@index([chartId, palaceKey])
+}
+
+// 깊은풀이(궁 가로지르는 종합) 캐시. PalaceReading과 동일 캐시 패턴이며 키가 palaceKey→section.
+// section: 깊은풀이 섹션 키. 생성부에서 "overview"|"interaction"|"timeline"|"summary"
+//          (또는 합본 "all") 중 무엇으로 저장할지 확정. 모델은 어느 쪽도 수용.
+model DeepReading {
+  id      String @id @default(cuid())
+  chartId String
+  chart   Chart  @relation(fields: [chartId], references: [id], onDelete: Cascade)
+
+  section       String
+  modelVersion  String // 실제 모델 id, 예: "gemini-2.5-flash-lite"
+  promptVersion String // PROMPT_VERSION, 예: "v1"
+  content       String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([chartId, section, modelVersion, promptVersion])
+  @@index([chartId, section])
 }
 
 // AI 일일 사용량 — 플랜별 일일 턴 한도를 정확히 집계 (추정치 X).

@@ -23,6 +23,7 @@ export interface PremiumFeature {
 export function premiumFeatures(chartId?: string): PremiumFeature[] {
   const cid = chartId ?? '';
   return [
+    { key: 'deep', icon: '🔮', title: '깊은 풀이', desc: '12궁을 가로지르는 종합 풀이', href: `/chart/${cid}/deep` },
     { key: 'full', icon: '🗂️', title: '12궁 전체 상세 풀이', desc: '열두 자리를 모두 깊이 있게', href: `/chart/${cid}/ai` },
     { key: 'timeline', icon: '📈', title: '대운·세운 타임라인', desc: '시기별 운의 흐름을 한눈에', href: `/chart/${cid}/timeline` },
     { key: 'compat', icon: '💞', title: '궁합·인연 분석', desc: '상대와의 인연을 명반으로 비교', href: '/compatibility' },
@@ -30,13 +31,19 @@ export function premiumFeatures(chartId?: string): PremiumFeature[] {
   ];
 }
 
+// 깊은풀이 카드 식별 — 결제(PAID) 기준 잠금. (다른 카드는 로그인 기준)
+const DEEP_KEY = 'deep';
+
 export function PremiumSection({
   loggedIn,
+  isPaid = false,
   chartId,
   onSelect,
 }: {
-  /** 프리미엄 접근 권한(로그인/유료). 카드 잠금 표시·CTA 문구 결정에만 사용. */
+  /** 프리미엄 접근 권한(로그인). 카드 잠금 표시·CTA 문구 결정에만 사용. */
   loggedIn: boolean;
+  /** 이 명반의 깊은풀이 결제(PAID) 여부 — 깊은풀이 카드 잠금 판정. */
+  isPaid?: boolean;
   chartId?: string;
   /** 카드 탭 → 상위에서 권한 분기(이동/게이트) */
   onSelect: (href: string) => void;
@@ -55,32 +62,44 @@ export function PremiumSection({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {features.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => onSelect(f.href)}
-            aria-label={loggedIn ? f.title : `${f.title} — 가입하면 열려요`}
-            style={{
-              position: 'relative',
-              display: 'flex', flexDirection: 'column', gap: 5,
-              textAlign: 'left', cursor: 'pointer',
-              background: Z.white, border: `1px solid ${Z.line}`,
-              borderRadius: 16, padding: '13px 13px 14px', minHeight: 100,
-            }}
-          >
-            {/* 은은한 잠금 표시 — 비로그인에게만, 작고 옅게 */}
-            {!loggedIn && (
-              <span aria-hidden style={{ position: 'absolute', top: 11, right: 12, fontSize: 11, opacity: 0.55 }}>🔒</span>
-            )}
-            <span aria-hidden style={{ fontSize: 20 }}>{f.icon}</span>
-            <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3, paddingRight: 14 }}>{f.title}</span>
-            <span style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.45 }}>{f.desc}</span>
-            <span style={{ marginTop: 'auto', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>
-              {loggedIn ? '보러 가기 →' : '가입하고 보기 →'}
-            </span>
-          </button>
-        ))}
+        {features.map((f) => {
+          const isDeep = f.key === DEEP_KEY;
+          // 깊은풀이 카드는 결제(PAID) 기준 잠금, 나머지는 로그인 기준 잠금.
+          const locked = isDeep ? !isPaid : !loggedIn;
+          const cta = isDeep
+            ? isPaid
+              ? '보러 가기 →'
+              : '1,900원으로 열기 →'
+            : loggedIn
+              ? '보러 가기 →'
+              : '가입하고 보기 →';
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => onSelect(f.href)}
+              aria-label={locked ? `${f.title} — 잠김` : f.title}
+              style={{
+                position: 'relative',
+                display: 'flex', flexDirection: 'column', gap: 5,
+                textAlign: 'left', cursor: 'pointer',
+                background: Z.white, border: `1px solid ${isDeep && !isPaid ? Z.p100 : Z.line}`,
+                borderRadius: 16, padding: '13px 13px 14px', minHeight: 100,
+              }}
+            >
+              {/* 은은한 잠금 표시 */}
+              {locked && (
+                <span aria-hidden style={{ position: 'absolute', top: 11, right: 12, fontSize: 11, opacity: 0.55 }}>🔒</span>
+              )}
+              <span aria-hidden style={{ fontSize: 20 }}>{f.icon}</span>
+              <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3, paddingRight: 14 }}>{f.title}</span>
+              <span style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.45 }}>{f.desc}</span>
+              <span style={{ marginTop: 'auto', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>
+                {cta}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
