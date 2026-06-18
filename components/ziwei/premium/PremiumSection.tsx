@@ -67,7 +67,7 @@ export function PremiumSection({
             <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3 }}>{f.title}</span>
             <span style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.45 }}>{f.desc}</span>
             <span style={{ marginTop: 'auto', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>
-              {loggedIn ? '보러 가기 →' : '가입하고 보기 →'}
+              {loggedIn ? '890원 · 보기 →' : '가입하고 보기 →'}
             </span>
           </button>
         ))}

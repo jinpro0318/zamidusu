@@ -8,7 +8,7 @@ import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
-import type { BankInfo } from '@/components/ziwei/sheets/DepositSheet';
+import { DepositSheet, type BankInfo } from '@/components/ziwei/sheets/DepositSheet';
 import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
 import { UncertainTimeBadge } from '@/components/ziwei/UncertainTimeBadge';
 import { Toast } from '@/components/ziwei/sheets/Toast';
@@ -45,9 +45,17 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
   const [plateSel, setPlateSel] = useState('命宮');
   const [gate, setGate] = useState<GateState | null>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
+  // 프리미엄 4기능 결제 팝업(체험): 결제 확인 누르면 해당 기능으로 이동.
+  const [payHref, setPayHref] = useState<string | null>(null);
 
-  // 테스트 기간: 결제 없이 실제 기능을 체험. 프리미엄 카드 → 해당 페이지로 이동(비회원은 로그인 유도).
-  const handlePremiumSelect = (href: string) => activate(href);
+  // 프리미엄 카드 → 회원이면 결제 팝업(체험), 비회원이면 로그인 유도.
+  const handlePremiumSelect = (href: string) => {
+    if (!canAccessPremium) {
+      openJoinGate(href);
+      return;
+    }
+    setPayHref(href);
+  };
 
   // 프리미엄 진입 게이트 → 하단 바텀시트(LoginGate)로 "가입하면 열려요" + 로그인/가입.
   // next: 로그인 후 복귀할 내부 경로.
@@ -366,6 +374,17 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
         gate={gate}
         onClose={() => setGate(null)}
         callbackUrl={pendingHref ?? undefined}
+      />
+      {/* 프리미엄 4기능 결제 팝업(체험) — '결제 확인하고 보기' 누르면 해당 기능으로 이동 */}
+      <DepositSheet
+        open={!!payHref}
+        onClose={() => setPayHref(null)}
+        bank={bank ?? { name: '', account: '', holder: '' }}
+        onConfirm={() => {
+          const h = payHref;
+          setPayHref(null);
+          if (h) router.push(h);
+        }}
       />
       <Toast msg={toast} />
     </div>

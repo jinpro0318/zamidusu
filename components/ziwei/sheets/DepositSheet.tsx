@@ -16,12 +16,15 @@ export function DepositSheet({
   open,
   onClose,
   bank,
+  onConfirm,
 }: {
   open: boolean;
   onClose: () => void;
   /** 정식 결제 전환 시 사용(현재 테스트 단계라 미사용). */
   chartId?: string;
   bank: BankInfo;
+  /** 체험(데모): '결제 확인' 시 실제 입금 없이 바로 해당 기능을 연다. */
+  onConfirm?: () => void;
 }) {
   const [depositorName, setDepositorName] = useState('');
   const [sending] = useState(false);
@@ -53,11 +56,17 @@ export function DepositSheet({
   };
 
   const submit = () => {
+    // 체험(데모): 실제 입금/결제 없이 '결제 확인'을 누르면 바로 해당 기능을 연다.
+    // 정식 전환 시 입금자명 검증 + POST /api/purchase(PENDING) 복구.
+    if (onConfirm) {
+      onConfirm();
+      close();
+      return;
+    }
     if (depositorName.trim().length < 1) {
       setErr('입금자명을 입력해 주세요.');
       return;
     }
-    // 테스트 기간: 결제 플로우 비활성(현재 미사용 컴포넌트). 정식 전환 시 POST /api/purchase 복구.
     setErr(null);
     close();
   };
@@ -122,8 +131,14 @@ export function DepositSheet({
             <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13, color: Z.ink2, margin: '8px 0 16px', lineHeight: 1.55 }}>
               아래 계좌로 입금 후 입금자명을 남겨주세요.
               <br />
-              한 번 결제하면 이 명반의 깊은 풀이가 영구히 열려요.
+              한 번 결제하면 이 기능이 영구히 열려요.
             </div>
+
+            {onConfirm && (
+              <div style={{ background: 'rgba(199,162,63,0.12)', border: '1px solid rgba(199,162,63,0.4)', borderRadius: 12, padding: '10px 12px', marginBottom: 14, fontFamily: SANS, fontSize: 12.5, color: '#9C7C1E', lineHeight: 1.55, textAlign: 'center' }}>
+                체험 기간이에요. 실제 입금 없이 <b>‘결제 확인하고 보기’</b>를 누르면 바로 열립니다.
+              </div>
+            )}
 
             {hasBank ? (
               <div style={{ background: Z.p50, border: `1px solid ${Z.p100}`, borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}>
@@ -186,16 +201,16 @@ export function DepositSheet({
 
             <button
               onClick={submit}
-              disabled={sending || !hasBank}
+              disabled={sending || (!hasBank && !onConfirm)}
               style={{
-                marginTop: 14, width: '100%', cursor: sending || !hasBank ? 'default' : 'pointer',
+                marginTop: 14, width: '100%', cursor: sending || (!hasBank && !onConfirm) ? 'default' : 'pointer',
                 border: 'none', borderRadius: 14, padding: '14px',
                 fontFamily: SANS, fontSize: 15.5, fontWeight: 800, color: '#fff',
-                background: sending || !hasBank ? Z.ink3 : `linear-gradient(180deg,${Z.p600},${Z.p700})`,
+                background: sending || (!hasBank && !onConfirm) ? Z.ink3 : `linear-gradient(180deg,${Z.p600},${Z.p700})`,
                 boxShadow: '0 6px 18px rgba(76,58,124,0.3)',
               }}
             >
-              {sending ? '신청 중…' : '입금 완료했어요'}
+              {sending ? '신청 중…' : onConfirm ? '결제 확인하고 보기' : '입금 완료했어요'}
             </button>
             <button
               onClick={close}
