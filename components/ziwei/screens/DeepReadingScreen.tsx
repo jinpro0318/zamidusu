@@ -1,7 +1,7 @@
 'use client';
 
 // screens/DeepReadingScreen.tsx — 깊은 풀이(궁을 "가로지르는" 종합) 표시.
-// useChat(mode:"deep")로 /api/ai/chat를 호출하고 4섹션([종합 총평]/[궁 상호작용]/[대운 흐름]/[종합 마무리])을
+// useChat(mode:"deep")로 /api/ai/chat를 호출하고 분야별 섹션([성격·기질]/[일·공부운]/[연애·인간관계운]/[재물운]/[마음·건강운]/[개운법])을
 // 파싱해 렌더한다. 결제(PAID) 게이트는 서버(page.tsx)에서 이미 통과한 상태로만 진입한다.
 import { useEffect, useMemo, useRef } from 'react';
 import { useChat } from '@ai-sdk/react';
@@ -11,7 +11,7 @@ import { AiText, buildGlossary, TermLegend } from '@/components/ai/AiText';
 import { DEEP_READING_INIT_PROMPT } from '@/lib/ai/prompt-builder';
 import type { Nav } from '@/lib/ziwei-types';
 
-const DEEP_TITLE_RE = /\[+(종합 총평|궁 상호작용|대운 흐름|종합 마무리)\]+/g;
+const DEEP_TITLE_RE = /\[+(성격·기질|일·공부운|연애·인간관계운|재물운|마음·건강운|개운법)\]+/g;
 
 function parseSections(text: string): { title: string; body: string }[] | null {
   const found = [...text.matchAll(DEEP_TITLE_RE)];
