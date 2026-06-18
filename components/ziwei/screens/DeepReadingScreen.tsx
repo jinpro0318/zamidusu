@@ -75,6 +75,9 @@ export function DeepReadingScreen({
           </h1>
         </div>
 
+        {/* 상단 안내 범례 — 본문 위에 둬서 "탭하면 뜻풀이"를 먼저 알게 한다 */}
+        {hasAnswer && sections && <TermLegend />}
+
         {hasAnswer && sections &&
           sections.map((sec, i) => (
             <div
@@ -123,7 +126,6 @@ export function DeepReadingScreen({
           </div>
         )}
 
-        {hasAnswer && sections && <TermLegend />}
       </div>
     </div>
   );

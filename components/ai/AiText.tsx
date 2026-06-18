@@ -332,25 +332,33 @@ function Popover({ term, anchor, onClose }: { term: Term; anchor: HTMLElement; o
  * 본문 색 구분 미니 범례 (★ 별 · ⌂ 궁(자리) · ✦ 개념). TERM_TYPES 한 곳에서 끌어다 쓴다.
  * 각 항목을 그 타입 색으로 표시해 본문 버튼 색이 무엇을 뜻하는지 한눈에 알 수 있게 한다.
  */
+// 각 타입이 무엇을 뜻하는지 한 줄 설명(범례용). 본문 버튼 색의 의미를 바로 알 수 있게.
+const LEGEND_MEANING: Record<IconKey, string> = {
+  star: '별 (타고난 기질)',
+  palace: '궁 (인생 영역)',
+  concept: '개념 (자미두수 용어)',
+};
+
 export function TermLegend({ style }: { style?: CSSProperties }) {
   const keys: IconKey[] = ['star', 'palace', 'concept'];
   return (
     <div
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexWrap: 'wrap', gap: '2px 4px',
-        fontFamily: SANS, fontSize: 11.5, color: Z.ink3, ...style,
+        flexWrap: 'wrap', gap: '3px 7px',
+        background: Z.p50, border: `1px solid ${Z.p100}`, borderRadius: 12,
+        padding: '9px 12px',
+        fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.5, ...style,
       }}
     >
-      {keys.map((k, i) => (
-        <Fragment key={k}>
-          {i > 0 && <span aria-hidden style={{ color: Z.ink3 }}>·</span>}
-          <span style={{ color: TERM_TYPES[k].fg, fontWeight: 700, whiteSpace: 'nowrap' }}>
-            {TERM_TYPES[k].glyph} {TERM_TYPES[k].short}
-          </span>
-        </Fragment>
+      <span style={{ fontWeight: 700, color: Z.p600, whiteSpace: 'nowrap' }}>
+        👆 색깔 단어를 탭하면 뜻풀이가 떠요
+      </span>
+      {keys.map((k) => (
+        <span key={k} style={{ color: TERM_TYPES[k].fg, fontWeight: 700, whiteSpace: 'nowrap' }}>
+          {TERM_TYPES[k].glyph} {LEGEND_MEANING[k]}
+        </span>
       ))}
-      <span style={{ whiteSpace: 'nowrap' }}>— 탭하면 뜻풀이를 볼 수 있어요</span>
     </div>
   );
 }

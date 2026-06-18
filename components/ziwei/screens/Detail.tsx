@@ -253,6 +253,9 @@ export function Detail({
             )}
           </div>
 
+          {/* 상단 안내 범례 — 본문 위에 둬서 "탭하면 뜻풀이"를 먼저 알게 한다 */}
+          {hasAnswer && <TermLegend />}
+
           {/* 성공: 섹션 카드 (마커 파싱 실패 시 통짜 폴백) */}
           {hasAnswer && sections && sections.map((sec, i) => (
             <div
@@ -273,7 +276,6 @@ export function Detail({
               <AiText text={cleanMd(mainAnswer)} glossary={glossary} />
             </div>
           )}
-          {hasAnswer && <TermLegend />}
 
           {/* 로딩 */}
           {isLoading && !hasAnswer && (
