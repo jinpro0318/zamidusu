@@ -14,9 +14,6 @@ export const Z = {
   gold: '#C7A23F',
   goldBright: '#E3C36B',
   goldSoft: '#F0E3BE',
-  // "상세 풀이 보기" 전용 CTA — 밝고 선명한 바이올렛 그라데이션(어두운 배경에서도 또렷)
-  detailCtaFrom: '#A78BFA',
-  detailCtaTo: '#8B5CF6',
   ink: '#231B33',
   ink2: '#6B6378',
   ink3: '#9B94A8',

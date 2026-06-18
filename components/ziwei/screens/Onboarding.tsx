@@ -63,7 +63,7 @@ export function Onboarding({ nav, account }: { nav: Nav; account?: { nickname: s
             당신의 <span style={{ color: Z.goldBright }}>명반</span>을 그려드립니다
           </h1>
           <p style={{ fontFamily: SANS, fontSize: 15, color: 'rgba(255,255,255,0.62)', lineHeight: 1.6, marginTop: 14 }}>
-            AI가 12궁·14주성을 자동으로 계산하고
+            AI가 12궁·14주성을 자동으로 배치하고
             <br />
             어려운 한자 대신 <b style={{ color: '#fff', fontWeight: 600 }}>쉬운 말</b>로 풀어드려요
           </p>

@@ -8,7 +8,6 @@ import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
-import { PalaceModal } from '@/components/ziwei/sheets/PalaceModal';
 import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
@@ -38,16 +37,10 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
   const [plateSel, setPlateSel] = useState('命宮');
   const [gate, setGate] = useState<GateState | null>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  // 탭한 궁의 풀이 모달 (cn key). null이면 닫힘.
-  const [modalKey, setModalKey] = useState<string | null>(null);
-
-  const modalArea = modalKey ? allAreas.find((x) => x.cn === modalKey) ?? null : null;
-  const modalInfo = (modalKey && AREA_INFO[modalKey]) || { headline: '', summary: '', detail: '' };
 
   // 프리미엄 진입 게이트 → 하단 바텀시트(LoginGate)로 "가입하면 열려요" + 로그인/가입.
-  // next: 로그인 후 복귀할 내부 경로. 궁 모달이 떠 있으면 닫고 게이트를 위로 올린다.
+  // next: 로그인 후 복귀할 내부 경로.
   const openJoinGate = (next?: string) => {
-    setModalKey(null);
     setPendingHref(next ?? null);
     setGate({ reason: 'detail', onSuccess: null });
   };
@@ -57,6 +50,10 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
     if (canAccessPremium) router.push(href);
     else openJoinGate(href);
   };
+
+  // 궁 상세(AI 풀이) 페이지로 직접 이동. (이전엔 요약 팝업을 거쳤으나 제거)
+  // 회원 → /chart/[id]/palace/[key] 로 바로, 비회원 → 가입 게이트(복귀 경로 포함).
+  const openPalace = (key: string) => activate(nav.hrefFor('detail', { key }));
 
   // 비회원이 공유를 누르면 공유 시트 대신 가입 모달(게이트)로 유도. 로그인 후 이 명반으로 복귀.
   const openShareGate = () => {
@@ -78,16 +75,17 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
           0%, 100% { transform: translateY(0); opacity: 0.85; }
           50% { transform: translateY(6px); opacity: 1; }
         }
-        /* "상세 풀이 보기" 전용 CTA — 밝은 바이올렛 + 호버/탭 글로우 */
+        /* "상세 풀이 보기" 전용 CTA — 모달의 "AI 상세 풀이 전체 보기" 버튼과 동일한
+           진한 세로 보라(p500→p700). 두 버튼 모두 같은 토큰을 공유한다. */
         .detail-cta {
           color: #fff;
           border: none;
-          background: linear-gradient(135deg, ${Z.detailCtaFrom}, ${Z.detailCtaTo});
-          box-shadow: 0 4px 12px rgba(139,92,246,0.35);
+          background: linear-gradient(180deg, ${Z.p500}, ${Z.p700});
+          box-shadow: 0 4px 14px rgba(94,71,160,0.3);
           transition: filter .15s ease, box-shadow .15s ease;
         }
-        .detail-cta:hover { filter: brightness(1.07); box-shadow: 0 6px 18px rgba(139,92,246,0.5); }
-        .detail-cta:active { filter: brightness(1.03); box-shadow: 0 3px 10px rgba(139,92,246,0.45); }
+        .detail-cta:hover { filter: brightness(1.07); box-shadow: 0 6px 18px rgba(94,71,160,0.45); }
+        .detail-cta:active { filter: brightness(1.03); box-shadow: 0 3px 10px rgba(94,71,160,0.4); }
       `}</style>
 
       {/* ── 통합 다크 패널: 헤더 + 명반 차트 ── */}
@@ -152,11 +150,11 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
             {subjectName ? `${subjectName} · ` : ''}{birthLabel ?? ''}
           </div>
           <Plate selKey={plateSel} onSel={setPlateSel} easy={true} areas={allAreas} />
-          {/* 선택 궁 요약 카드 — 탭하면 풀이 모달 오픈 */}
+          {/* 선택 궁 요약 카드 — 탭하면 곧바로 궁 상세(AI 풀이) 페이지로 이동 */}
           <button
             type="button"
-            onClick={() => setModalKey(plateSel)}
-            aria-label={`${plateCur.ko} (${plateCur.cn}) 풀이 보기`}
+            onClick={() => openPalace(plateSel)}
+            aria-label={`${plateCur.ko} (${plateCur.cn}) 상세 풀이 보기`}
             style={{
               background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(227,195,107,0.22)',
               borderRadius: 14, padding: '11px 14px', display: 'flex', gap: 12, alignItems: 'center',
@@ -243,25 +241,30 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
                     )}
                   </div>
                 </div>
-                {/* 상세 풀이 진입 — 잠금 표시 없는 깔끔한 CTA. 탭하면 권한에 따라 분기:
-                    회원/유료 → 상세 풀이 모달, 비로그인 → 가입 바텀시트(복귀 경로 포함) */}
+                {/* 상세 풀이 진입 — 탭하면 권한에 따라 분기:
+                    회원/유료 → 궁 상세(AI 풀이) 페이지로 직접 이동, 비로그인 → 가입 바텀시트(복귀 경로 포함) */}
                 <button
                   type="button"
-                  onClick={() =>
-                    canAccessPremium
-                      ? setModalKey(a.cn)
-                      : openJoinGate(nav.hrefFor('detail', { key: a.cn }))
-                  }
-                  aria-label={`${a.ko} 상세 풀이 보기`}
+                  onClick={() => openPalace(a.cn)}
+                  aria-label={`${a.ko} 상세 풀이 보기${loggedIn ? '' : ' · 회원 전용'}`}
                   className="detail-cta"
                   style={{
                     marginTop: 11, width: '100%', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    fontFamily: SANS, fontSize: 13.5, fontWeight: 700, borderRadius: 12, padding: '10px 12px',
+                    fontFamily: SANS, fontSize: 13.5, fontWeight: 700, borderRadius: 13, padding: '10px 12px',
                   }}
                 >
-                  상세 풀이 보기
-                  <span aria-hidden style={{ fontWeight: 800 }}>→</span>
+                  {loggedIn ? (
+                    <>
+                      상세 풀이 보기
+                      <span aria-hidden style={{ fontWeight: 800 }}>→</span>
+                    </>
+                  ) : (
+                    <>
+                      <span aria-hidden>🔒</span>
+                      상세 풀이 보기 · 회원 전용
+                    </>
+                  )}
                 </button>
               </div>
             );
@@ -295,16 +298,6 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, c
         chartId={chartId}
         title={subjectName}
       />
-      {/* 궁 상세 풀이 모달 — 회원/유료만 진입(비로그인은 카드에서 게이트로 분기). */}
-      <PalaceModal
-        area={modalArea}
-        info={modalInfo}
-        loggedIn={loggedIn}
-        onClose={() => setModalKey(null)}
-        onJoin={() => openJoinGate(modalKey ? nav.hrefFor('detail', { key: modalKey }) : undefined)}
-        onOpenFull={modalKey ? () => nav.go('detail', { key: modalKey }) : undefined}
-      />
-
       <LoginGate
         gate={gate}
         onClose={() => setGate(null)}
