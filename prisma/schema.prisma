@@ -93,6 +93,7 @@ model Chart {
   updatedAt DateTime @updatedAt
 
   conversations    AiConversation[]
+  palaceReadings   PalaceReading[]
   compatibilitiesA Compatibility[]  @relation("CompatibilityA")
   compatibilitiesB Compatibility[]  @relation("CompatibilityB")
 
@@ -152,6 +153,27 @@ model AiConversation {
   updatedAt DateTime @updatedAt
 
   @@index([userId, chartId])
+}
+
+// 궁별 "초기 풀이" 캐시 — 동일 (chartId, 궁) 재방문 시 LLM 재호출 없이 즉시 반환.
+// 키에 modelVersion(실제 모델 id)·promptVersion(PROMPT_VERSION)을 포함해,
+// 모델/프롬프트가 바뀌면 키가 달라져 새 캐시가 생성되고 옛 캐시는 더 이상 조회되지 않는다(stale 방지).
+// 초기 4섹션 풀이에만 저장하며, 후속 자유질문은 캐시 대상이 아니다.
+model PalaceReading {
+  id      String @id @default(cuid())
+  chartId String
+  chart   Chart  @relation(fields: [chartId], references: [id], onDelete: Cascade)
+
+  palaceKey     String // 예: 命宮
+  modelVersion  String // 실제 모델 id, 예: "gemini-2.5-flash-lite"
+  promptVersion String // PROMPT_VERSION, 예: "v1"
+  content       String // 생성된 4섹션 풀이 원문(용어 마킹 포함)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([chartId, palaceKey, modelVersion, promptVersion])
+  @@index([chartId, palaceKey])
 }
 
 // AI 일일 사용량 — 플랜별 일일 턴 한도를 정확히 집계 (추정치 X).

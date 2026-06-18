@@ -1,5 +1,10 @@
 import type { AstrolabePayload } from "@/lib/iztro/types";
 
+// 초기 궁 풀이 캐시(PalaceReading)의 promptVersion 키로 사용.
+// 아래 buildSystemPrompt / initPrompt 의 의미를 바꾸는 변경을 하면 수동으로 올린다("v2"...).
+// 버전이 바뀌면 캐시 키가 달라져 옛 캐시는 더 이상 조회되지 않고 새로 생성·저장된다.
+export const PROMPT_VERSION = "v1";
+
 export function buildSystemPrompt(opts: {
   payload: AstrolabePayload;
   subjectName?: string | null;

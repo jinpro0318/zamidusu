@@ -1,7 +1,12 @@
-import { streamText, type CoreMessage } from "ai";
+import {
+  streamText,
+  createDataStreamResponse,
+  formatDataStreamPart,
+  type CoreMessage,
+} from "ai";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { buildSystemPrompt } from "@/lib/ai/prompt-builder";
+import { buildSystemPrompt, PROMPT_VERSION } from "@/lib/ai/prompt-builder";
 import { pickModel, modelIdFor } from "@/lib/ai/gateway";
 import { isSafeQuery } from "@/lib/ai/guardrails";
 import { getEntitlements } from "@/lib/entitlements";
@@ -39,6 +44,36 @@ export async function POST(req: Request) {
   if (!chart) return new Response("Not found", { status: 404 });
 
   const ent = await getEntitlements(userId);
+  const modelVersion = modelIdFor(ent.plan);
+
+  // "초기 궁 풀이" 여부 — 고정 initPrompt 1회 append로 트리거되므로 messages가 정확히 1개.
+  // 후속 자유질문은 messages가 더 길다. 캐시·thinking-off·maxTokens는 초기 풀이에만 적용.
+  const isInitialReading =
+    !!palaceKey && Array.isArray(messages) && messages.length === 1;
+
+  // ── 캐시 조회 단락 (쿼터 증가 이전) ──
+  // 동일 (chartId, 궁, 모델, 프롬프트 버전)이면 LLM 호출·쿼터 소비 없이 저장된 풀이를 즉시 반환.
+  if (isInitialReading) {
+    const cached = await db.palaceReading.findUnique({
+      where: {
+        chartId_palaceKey_modelVersion_promptVersion: {
+          chartId: chart.id,
+          palaceKey,
+          modelVersion,
+          promptVersion: PROMPT_VERSION,
+        },
+      },
+    });
+    if (cached) {
+      // useChat이 그대로 파싱하도록 동일한 data stream 프로토콜로 흘려보낸다.
+      return createDataStreamResponse({
+        execute: (stream) => {
+          stream.write(formatDataStreamPart("text", cached.content));
+        },
+      });
+    }
+  }
+
   // 일일 턴 한도 — KST 기준 날짜별로 정확히 집계. upsert increment라 동시 요청에도 원자적.
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
   const usage = await db.aiDailyUsage.upsert({
@@ -67,7 +102,17 @@ export async function POST(req: Request) {
     system,
     messages: messages as CoreMessage[],
     temperature: 0.5,
-    onFinish: async ({ usage }) => {
+    // 초기 궁 풀이: 첫 토큰 지연(TTFB)을 줄이기 위해 thinking을 끄고 출력 길이를 제한.
+    // 후속 자유질문은 기본값 유지(추론 깊이 보존).
+    ...(isInitialReading
+      ? {
+          maxTokens: 1400,
+          providerOptions: {
+            google: { thinkingConfig: { thinkingBudget: 0 } },
+          },
+        }
+      : {}),
+    onFinish: async ({ text, usage }) => {
       try {
         await db.aiConversation.upsert({
           where: { id: `${chart.id}-${userId}` },
@@ -76,7 +121,7 @@ export async function POST(req: Request) {
             userId,
             chartId: chart.id,
             messages: JSON.stringify(messages),
-            model: modelIdFor(ent.plan),
+            model: modelVersion,
             tokenUsage: usage?.totalTokens ?? 0,
           },
           update: {
@@ -84,9 +129,30 @@ export async function POST(req: Request) {
             tokenUsage: { increment: usage?.totalTokens ?? 0 },
           },
         });
+        // 초기 궁 풀이만 캐시에 저장(버전 키 포함). 후속 자유질문은 저장 안 함.
+        if (isInitialReading && text?.trim()) {
+          await db.palaceReading.upsert({
+            where: {
+              chartId_palaceKey_modelVersion_promptVersion: {
+                chartId: chart.id,
+                palaceKey,
+                modelVersion,
+                promptVersion: PROMPT_VERSION,
+              },
+            },
+            create: {
+              chartId: chart.id,
+              palaceKey,
+              modelVersion,
+              promptVersion: PROMPT_VERSION,
+              content: text,
+            },
+            update: { content: text },
+          });
+        }
       } catch (err) {
-        // 응답 스트림은 끊지 않되, 사용량 기록 실패는 반드시 로그에 남긴다.
-        console.error("[POST /api/ai/chat] 대화 저장 실패", err);
+        // 응답 스트림은 끊지 않되, 저장 실패는 반드시 로그에 남긴다.
+        console.error("[POST /api/ai/chat] 대화/캐시 저장 실패", err);
       }
     },
   });
