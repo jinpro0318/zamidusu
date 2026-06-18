@@ -72,7 +72,7 @@ export function Detail({
   const keywords = [...new Set(kw)].slice(0, 5);
 
   // ── 2단: 구조화 AI 본문 ──
-  const initPrompt = `${a.ko}(${a.cn})에 대한 자미두수 풀이를 작성해주세요. 반드시 아래 4개 섹션으로 나누고, 각 섹션은 대괄호 머리글로 시작하세요: [평소 모습] [잘 풀릴 때] [힘 빠질 때] [이렇게 해보세요]. 머리글 외의 제목·마크다운 기호는 쓰지 마세요. '성향/강점/주의/조언' 같은 추상적 라벨 나열 대신, 이 자리의 별(주성·보조성)과 밝기를 근거로 **사용자가 실제 일상·관계·일에서 어떻게 느끼고 겪는지**를 구체적인 장면과 감정으로 풀어주세요. [이렇게 해보세요]에는 당장 실생활에서 시도할 수 있는 행동을 담아주세요.`;
+  const initPrompt = `${a.ko}(${a.cn})를 중심으로, 옆에서 상담하듯 대화형으로 풀어주세요. 대괄호 머리글·목록·특수 토큰 없이 자연스러운 문단으로, 도입 공감 → 마음 읽기 질문 → 명반 근거 본문 → 응원 마무리 흐름으로 들려주세요. 이 자리의 별(주성·보조성)과 밝기를 근거로, 제가 실제 일상·관계·일에서 어떻게 느끼고 겪는지를 구체적인 장면과 감정으로 풀어주세요.`;
 
   const { messages, input, handleInputChange, handleSubmit, status, append, error, reload } = useChat({
     api: '/api/ai/chat',
@@ -256,8 +256,8 @@ export function Detail({
             )}
           </div>
 
-          {/* 상단 안내 범례 — 본문 위에 둬서 "탭하면 뜻풀이"를 먼저 알게 한다 */}
-          {hasAnswer && <TermLegend />}
+          {/* 상단 안내 범례 — 용어 마킹이 있을 때만(대화형 풀이엔 마킹이 없어 숨김) */}
+          {hasAnswer && Object.keys(glossary).length > 0 && <TermLegend />}
 
           {/* 성공: 섹션 카드 (마커 파싱 실패 시 통짜 폴백) */}
           {hasAnswer && sections && sections.map((sec, i) => (

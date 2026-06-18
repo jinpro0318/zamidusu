@@ -80,8 +80,8 @@ export function DeepReadingScreen({
 
         {timeUncertain && <UncertainTimeBadge />}
 
-        {/* 상단 안내 범례 — 본문 위에 둬서 "탭하면 뜻풀이"를 먼저 알게 한다 */}
-        {hasAnswer && sections && <TermLegend />}
+        {/* 상단 안내 범례 — 용어 마킹이 있을 때만(대화형 풀이엔 마킹이 없어 숨김) */}
+        {hasAnswer && Object.keys(glossary).length > 0 && <TermLegend />}
 
         {hasAnswer && sections &&
           sections.map((sec, i) => (

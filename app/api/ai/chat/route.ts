@@ -102,6 +102,8 @@ export async function POST(req: Request) {
   // 비로그인 차단은 위 401에서 처리, 깊은풀이 결제는 위 403에서 처리.
 
   const payload = JSON.parse(chart.payload);
+  // 도입부 공감용 나이 힌트(근사). 캐시에는 첫 생성물이 고정되므로 매년 변하지 않음.
+  const age = chart.birthYear ? new Date().getFullYear() - chart.birthYear : undefined;
   const system = isTimeline
     ? buildTimelinePrompt({ payload, subjectName: chart.subjectName, gender: chart.gender })
     : isDeep
@@ -110,6 +112,7 @@ export async function POST(req: Request) {
           subjectName: chart.subjectName,
           gender: chart.gender,
           plan: ent.plan,
+          age,
         })
       : buildSystemPrompt({
           payload,
@@ -117,6 +120,7 @@ export async function POST(req: Request) {
           gender: chart.gender,
           plan: ent.plan,
           palaceKey: palaceKey ?? undefined,
+          age,
         });
 
   const result = streamText({
