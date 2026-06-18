@@ -165,7 +165,7 @@ export function Detail({
           <div>
             <div style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 800, color: '#fff', lineHeight: 1.05 }}>{a.ko}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 6, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: SERIF, fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>{annotatePalace(a.cn)}</span>
+              <span style={{ fontFamily: SERIF, fontSize: 13, color: Z.p300 }}>{annotatePalace(a.cn)}</span>
               {a.stars.length > 0 ? (
                 a.stars.map((s) => (
                   <span
@@ -182,8 +182,8 @@ export function Detail({
               ) : (
                 <span
                   style={{
-                    fontFamily: SERIF, fontSize: 12.5, color: 'rgba(255,255,255,0.7)',
-                    background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)',
+                    fontFamily: SERIF, fontSize: 12.5, color: Z.p300,
+                    background: 'rgba(183,164,224,0.15)', border: '1px solid rgba(183,164,224,0.4)',
                     borderRadius: 8, padding: '2px 8px', whiteSpace: 'nowrap',
                   }}
                 >
@@ -194,8 +194,8 @@ export function Detail({
                 <span
                   key={s}
                   style={{
-                    fontFamily: SANS, fontSize: 11.5, color: 'rgba(255,255,255,0.75)',
-                    background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)',
+                    fontFamily: SANS, fontSize: 11.5, color: Z.p300,
+                    background: 'rgba(183,164,224,0.12)', border: '1px solid rgba(183,164,224,0.32)',
                     borderRadius: 8, padding: '2px 7px', whiteSpace: 'nowrap',
                   }}
                 >

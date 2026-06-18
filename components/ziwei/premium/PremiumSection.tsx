@@ -21,7 +21,7 @@ export function premiumFeatures(chartId?: string): PremiumFeature[] {
     { key: 'full', icon: '🔮', title: '12궁 전체 풀이', desc: '12궁을 가로지르는 종합 풀이 · 인생 흐름과 전략까지', href: `/chart/${cid}/deep` },
     { key: 'timeline', icon: '📈', title: '대운·세운 타임라인', desc: '시기별 운의 흐름을 한눈에', href: `/chart/${cid}/timeline` },
     { key: 'compat', icon: '💞', title: '궁합·인연 분석', desc: '상대와의 인연을 명반으로 비교', href: '/compatibility' },
-    { key: 'alert', icon: '🔔', title: '월간 운세 알림', desc: '매달 내 운세를 챙겨드려요', href: '/mypage' },
+    { key: 'alert', icon: '🔔', title: '월간 운세', desc: '이번 달 내 운세 흐름을 짚어드려요', href: `/chart/${cid}/monthly` },
   ];
 }
 

@@ -10,6 +10,7 @@ import {
   buildSystemPrompt,
   buildDeepReadingPrompt,
   buildTimelinePrompt,
+  buildMonthlyPrompt,
   DEEP_SECTION,
   TIMELINE_SECTION,
   PROMPT_VERSION,
@@ -51,13 +52,19 @@ export async function POST(req: Request) {
   // 테스트 기간: 결제 게이트 없이 로그인 회원이면 모두 이용(정식 전환 시 isDeep+hasPurchased 게이트 복구).
   const isDeep = mode === "deep";
   const isTimeline = mode === "timeline";
+  const isMonthly = mode === "monthly";
 
   const ent = await getEntitlements(userId);
   const modelVersion = modelIdFor(ent.plan);
 
-  // 깊은풀이·대운흐름은 DeepReading(section)에 캐시, 궁별은 PalaceReading.
-  const usesDeepCache = isDeep || isTimeline;
-  const deepSection = isTimeline ? TIMELINE_SECTION : DEEP_SECTION;
+  // 월간 운세는 달마다 새로 — section을 "monthly-YYYY-MM"으로 키잉.
+  const now = new Date();
+  const monthLabel = `${now.getFullYear()}년 ${now.getMonth() + 1}월`;
+  const monthlySection = `monthly-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  // 깊은풀이·대운흐름·월간운세는 DeepReading(section)에 캐시, 궁별은 PalaceReading.
+  const usesDeepCache = isDeep || isTimeline || isMonthly;
+  const deepSection = isTimeline ? TIMELINE_SECTION : isMonthly ? monthlySection : DEEP_SECTION;
 
   // "초기 풀이" 여부 — 궁별/깊은풀이/대운흐름이 고정 initPrompt 1회로 트리거(messages 1개).
   // 후속 자유질문은 messages가 더 길다. 캐시·thinking-off·maxTokens는 초기 풀이에만 적용.
@@ -106,6 +113,14 @@ export async function POST(req: Request) {
   const age = chart.birthYear ? new Date().getFullYear() - chart.birthYear : undefined;
   const system = isTimeline
     ? buildTimelinePrompt({ payload, subjectName: chart.subjectName, gender: chart.gender })
+    : isMonthly
+      ? buildMonthlyPrompt({
+          payload,
+          subjectName: chart.subjectName,
+          gender: chart.gender,
+          monthLabel,
+          age,
+        })
     : isDeep
       ? buildDeepReadingPrompt({
           payload,

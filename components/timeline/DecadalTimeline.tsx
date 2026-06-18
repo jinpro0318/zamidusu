@@ -12,6 +12,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { DecadalSlice } from "@/lib/iztro/horoscope";
+import { Z, SANS, SERIF } from "@/theme/tokens";
 
 export function DecadalTimeline({
   decadals,
@@ -38,21 +39,22 @@ export function DecadalTimeline({
 
   return (
     <div className="space-y-4">
-      <div className="palace-card rounded-lg p-4">
+      <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: 16, boxShadow: "0 2px 10px rgba(36,26,61,0.04)" }}>
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={data} margin={{ top: 12, right: 16, bottom: 12, left: 0 }}>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-            <XAxis dataKey="range" stroke="#a89dba" tick={{ fontSize: 11 }} />
-            <YAxis stroke="#a89dba" tick={{ fontSize: 11 }} domain={[0, 100]} />
+            <CartesianGrid stroke="rgba(36,26,61,0.07)" vertical={false} />
+            <XAxis dataKey="range" stroke={Z.ink3} tick={{ fontSize: 11, fill: Z.ink2 }} />
+            <YAxis stroke={Z.ink3} tick={{ fontSize: 11, fill: Z.ink2 }} domain={[0, 100]} />
             <Tooltip
+              cursor={{ stroke: Z.p100 }}
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 const d = payload[0].payload;
                 return (
-                  <div className="palace-card rounded-md p-3 text-xs">
-                    <p className="font-display gold-text">{d.range}세</p>
-                    <p className="text-foreground">{d.palace}궁 · {d.stars || "공궁"}</p>
-                    <p className="text-muted">점수 {d.score}</p>
+                  <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 10, padding: 12, boxShadow: "0 6px 18px rgba(36,26,61,0.12)" }}>
+                    <p style={{ fontFamily: SERIF, fontSize: 13, fontWeight: 700, color: Z.p600 }}>{d.range}세</p>
+                    <p style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink }}>{d.palace}궁 · {d.stars || "공궁"}</p>
+                    <p style={{ fontFamily: SANS, fontSize: 12, color: Z.ink2 }}>점수 {d.score}</p>
                   </div>
                 );
               }}
@@ -60,19 +62,20 @@ export function DecadalTimeline({
             {currentRange && (
               <ReferenceLine
                 x={`${currentRange.startAge}-${currentRange.endAge}`}
-                stroke="#e3c36b"
+                stroke={Z.gold}
                 strokeDasharray="3 3"
-                label={{ value: "현재", fill: "#e3c36b", fontSize: 11 }}
+                label={{ value: "현재", fill: Z.gold, fontSize: 11 }}
               />
             )}
             <Line
               type="monotone"
               dataKey="score"
-              stroke="#e3c36b"
+              stroke={Z.p500}
               strokeWidth={3}
-              dot={{ r: 5, fill: "#e3c36b" }}
+              dot={{ r: 5, fill: Z.p500 }}
               activeDot={{
                 r: 8,
+                fill: Z.p600,
                 onClick: (_, payload: any) => {
                   const idx = decadals.findIndex((d) => d.startAge === payload.payload.startAge);
                   if (idx >= 0) setSelected(decadals[idx]);
@@ -84,23 +87,26 @@ export function DecadalTimeline({
       </div>
 
       {selected && (
-        <div className="palace-card rounded-lg p-6">
-          <h3 className="font-display text-xl gold-text">
+        <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: 20 }}>
+          <h3 style={{ fontFamily: SERIF, fontSize: 19, fontWeight: 800, color: Z.p600 }}>
             {selected.startAge} - {selected.endAge}세 · {selected.palaceName}궁
           </h3>
-          <p className="mt-2 text-sm text-muted">
+          <p style={{ fontFamily: SANS, fontSize: 13.5, color: Z.ink2, marginTop: 8 }}>
             대운 천간지지: {selected.heavenlyStem ?? "-"}
             {selected.earthlyBranch ?? "-"}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {selected.majorStars.length === 0 && <span className="text-muted text-sm">공궁(空宮)</span>}
+          <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {selected.majorStars.length === 0 && <span style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2 }}>공궁(空宮)</span>}
             {selected.majorStars.map((s, i) => (
-              <span key={i} className="rounded bg-gold/10 border border-gold/30 px-2 py-1 text-xs gold-text">
+              <span
+                key={i}
+                style={{ fontFamily: SERIF, fontSize: 12.5, color: "#9C7C1E", background: "rgba(199,162,63,0.13)", border: "1px solid rgba(199,162,63,0.4)", borderRadius: 8, padding: "3px 9px" }}
+              >
                 {s}
               </span>
             ))}
           </div>
-          <p className="mt-3 text-sm text-muted">점수 {selected.score}/100</p>
+          <p style={{ fontFamily: SANS, fontSize: 13.5, color: Z.ink2, marginTop: 12 }}>점수 {selected.score}/100</p>
         </div>
       )}
     </div>

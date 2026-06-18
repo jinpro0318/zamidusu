@@ -79,13 +79,13 @@ export function TimelineAnalysis({ chartId }: { chartId: string }) {
               <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: Z.p500, animation: `zmds-dot 1.2s ease-in-out ${i * 0.2}s infinite`, display: 'inline-block' }} />
             ))}
           </span>
-          <span style={{ fontFamily: SANS, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>연령대별 흐름을 분석하고 있어요…</span>
+          <span style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2 }}>연령대별 흐름을 분석하고 있어요…</span>
         </div>
       )}
 
       {failed && (
         <div style={{ textAlign: 'center', padding: '24px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span style={{ fontFamily: SANS, fontSize: 13.5, color: 'rgba(255,255,255,0.7)' }}>지금 분석을 불러오지 못했어요.</span>
+          <span style={{ fontFamily: SANS, fontSize: 13.5, color: Z.ink2 }}>지금 분석을 불러오지 못했어요.</span>
           <button
             onClick={() => reload()}
             style={{ alignSelf: 'center', cursor: 'pointer', border: `1.5px solid ${Z.p100}`, background: Z.white, borderRadius: 12, padding: '9px 16px', fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.p600 }}
