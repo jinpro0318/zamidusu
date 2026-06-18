@@ -27,6 +27,19 @@ export function DepositSheet({
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // 계좌번호를 숫자만(하이픈 제거) 클립보드에 복사 — 송금 입력창에 바로 붙여넣기 좋게.
+  const copyAccount = async () => {
+    const digits = bank.account.replace(/[^0-9]/g, '');
+    try {
+      await navigator.clipboard.writeText(digits);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setErr('복사에 실패했어요. 길게 눌러 복사해 주세요.');
+    }
+  };
 
   if (!open) return null;
 
@@ -128,11 +141,40 @@ export function DepositSheet({
 
             {hasBank ? (
               <div style={{ background: Z.p50, border: `1px solid ${Z.p100}`, borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}>
-                <div style={{ fontFamily: SANS, fontSize: 12, color: Z.ink3, marginBottom: 4 }}>입금 계좌</div>
-                <div style={{ fontFamily: SANS, fontSize: 16, fontWeight: 800, color: Z.ink }}>
-                  {bank.name} {bank.account}
+                <div style={{ fontFamily: SANS, fontSize: 12, color: Z.ink3, marginBottom: 4 }}>입금 계좌 · {bank.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ flex: 1, minWidth: 0, fontFamily: SANS, fontSize: 17, fontWeight: 800, color: Z.ink, letterSpacing: '0.01em' }}>
+                    {bank.account}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={copyAccount}
+                    aria-label="계좌번호 복사"
+                    style={{
+                      flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+                      border: `1.5px solid ${Z.p100}`, background: Z.white, borderRadius: 10, padding: '6px 10px',
+                      fontFamily: SANS, fontSize: 12, fontWeight: 700, color: Z.p600,
+                    }}
+                  >
+                    {copied ? (
+                      <>
+                        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+                          <path d="M3 8.5l3.5 3.5L13 4" stroke={Z.p600} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        복사됨
+                      </>
+                    ) : (
+                      <>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <rect x="9" y="9" width="11" height="11" rx="2" stroke={Z.p600} strokeWidth="2" />
+                          <path d="M5 15V5a2 2 0 0 1 2-2h10" stroke={Z.p600} strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        복사
+                      </>
+                    )}
+                  </button>
                 </div>
-                <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, marginTop: 2 }}>예금주 {bank.holder}</div>
+                <div style={{ fontFamily: SANS, fontSize: 13, color: Z.ink2, marginTop: 6 }}>예금주 {bank.holder}</div>
               </div>
             ) : (
               <div style={{ fontFamily: SANS, fontSize: 13, color: '#C0463F', marginBottom: 14 }}>
