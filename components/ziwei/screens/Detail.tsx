@@ -17,13 +17,13 @@ import { starKo } from '@/lib/star-names';
 import { annotateStar, annotatePalace } from '@/lib/glossary';
 import type { Area, Nav, NavParams } from '@/lib/ziwei-types';
 
-const SECTION_TITLES = ['성향', '강점', '주의할 점', '조언'] as const;
+const SECTION_TITLES = ['평소 모습', '잘 풀릴 때', '힘 빠질 때', '이렇게 해보세요'] as const;
 
-// AI 본문을 [성향]/[강점]/[주의할 점]/[조언] 마커로 분리. 마커가 2개 미만이면 null(통짜 폴백).
-// 모델이 용어 마킹([[...]])에 이끌려 머리글을 [[성향]]처럼 겹대괄호로 내보내기도 하므로,
+// AI 본문을 위 4개 마커로 분리. 마커가 2개 미만이면 null(통짜 폴백).
+// 모델이 용어 마킹([[...]])에 이끌려 머리글을 겹대괄호로 내보내기도 하므로,
 // 대괄호를 1개 이상([+ ... ]+) 허용해 본문에 stray 괄호가 남지 않도록 통째로 소비한다.
 function parseSections(text: string): { title: string; body: string }[] | null {
-  const re = /\[+(성향|강점|주의할 점|조언)\]+/g;
+  const re = /\[+(평소 모습|잘 풀릴 때|힘 빠질 때|이렇게 해보세요)\]+/g;
   const found = [...text.matchAll(re)];
   if (found.length < 2) return null;
   return found.map((m, i) => ({
@@ -70,7 +70,7 @@ export function Detail({
   const keywords = [...new Set(kw)].slice(0, 5);
 
   // ── 2단: 구조화 AI 본문 ──
-  const initPrompt = `${a.ko}(${a.cn})에 대한 자미두수 풀이를 작성해주세요. 반드시 아래 4개 섹션으로 나누고, 각 섹션은 대괄호 머리글로 시작하세요: [성향] [강점] [주의할 점] [조언]. 머리글 외의 제목·마크다운 기호는 쓰지 마세요. 이 궁에 자리한 별들(주성과 보조성)의 특성과 상호작용, 밝기를 근거로 들어 구체적으로 풀어주시고, [조언]에는 실생활에서 바로 적용할 수 있는 팁을 담아주세요.`;
+  const initPrompt = `${a.ko}(${a.cn})에 대한 자미두수 풀이를 작성해주세요. 반드시 아래 4개 섹션으로 나누고, 각 섹션은 대괄호 머리글로 시작하세요: [평소 모습] [잘 풀릴 때] [힘 빠질 때] [이렇게 해보세요]. 머리글 외의 제목·마크다운 기호는 쓰지 마세요. '성향/강점/주의/조언' 같은 추상적 라벨 나열 대신, 이 자리의 별(주성·보조성)과 밝기를 근거로 **사용자가 실제 일상·관계·일에서 어떻게 느끼고 겪는지**를 구체적인 장면과 감정으로 풀어주세요. [이렇게 해보세요]에는 당장 실생활에서 시도할 수 있는 행동을 담아주세요.`;
 
   const { messages, input, handleInputChange, handleSubmit, status, append, error, reload } = useChat({
     api: '/api/ai/chat',

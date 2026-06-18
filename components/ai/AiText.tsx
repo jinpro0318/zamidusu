@@ -42,7 +42,7 @@ export const TERM_TYPES: Record<
 > = {
   star: { glyph: '★', fg: '#9C7C1E', bg: 'rgba(199,162,63,0.13)', bd: 'rgba(199,162,63,0.7)', label: '별', short: '별' },
   palace: { glyph: '⌂', fg: Z.p600, bg: 'rgba(124,93,199,0.13)', bd: 'rgba(124,93,199,0.6)', label: '궁 (인생의 자리)', short: '궁(자리)' },
-  concept: { glyph: '✦', fg: Z.ink2, bg: 'rgba(107,99,120,0.12)', bd: 'rgba(107,99,120,0.45)', label: '개념', short: '개념' },
+  concept: { glyph: '✦', fg: '#1E8E6B', bg: 'rgba(30,142,107,0.12)', bd: 'rgba(30,142,107,0.5)', label: '개념', short: '개념' },
 };
 // 기존 참조 호환용 별칭
 const ICONS = TERM_TYPES;
@@ -352,7 +352,7 @@ export function TermLegend({ style }: { style?: CSSProperties }) {
       }}
     >
       <span style={{ fontWeight: 700, color: Z.p600, whiteSpace: 'nowrap' }}>
-        👆 색깔 단어를 탭하면 뜻풀이가 떠요
+        👇 색깔 단어를 탭하면 뜻풀이가 떠요
       </span>
       {keys.map((k) => (
         <span key={k} style={{ color: TERM_TYPES[k].fg, fontWeight: 700, whiteSpace: 'nowrap' }}>
