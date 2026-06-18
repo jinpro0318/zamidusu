@@ -43,9 +43,14 @@ export function PremiumSection({
         <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, color: Z.p600, letterSpacing: '0.06em' }}>
           ✦ 더 깊이 알아보기
         </div>
-        <h2 style={{ margin: '3px 0 0', fontFamily: SERIF, fontSize: 17, fontWeight: 800, color: Z.ink, letterSpacing: '-0.01em' }}>
-          {loggedIn ? '내게 맞는 더 깊은 풀이' : '가입하면 더 깊은 풀이가 열려요'}
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 3 }}>
+          <h2 style={{ margin: 0, fontFamily: SERIF, fontSize: 17, fontWeight: 800, color: Z.ink, letterSpacing: '-0.01em' }}>
+            {loggedIn ? '내게 맞는 더 깊은 풀이' : '가입하면 더 깊은 풀이가 열려요'}
+          </h2>
+          <span style={{ flexShrink: 0, fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600, background: Z.p50, border: `1px solid ${Z.p100}`, borderRadius: 999, padding: '3px 9px' }}>
+            유료 회원 전용
+          </span>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -67,7 +72,7 @@ export function PremiumSection({
             <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3 }}>{f.title}</span>
             <span style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.45 }}>{f.desc}</span>
             <span style={{ marginTop: 'auto', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>
-              {loggedIn ? '890원 · 보기 →' : '가입하고 보기 →'}
+              {loggedIn ? '보기 →' : '가입하고 보기 →'}
             </span>
           </button>
         ))}

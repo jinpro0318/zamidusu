@@ -210,7 +210,7 @@ export function Detail({
       {/* 스크롤 본문 */}
       <div
         ref={scrollRef}
-        style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 170px', display: 'flex', flexDirection: 'column', gap: 16 }}
+        style={{ flex: 1, overflowY: 'auto', padding: '18px 18px 210px', display: 'flex', flexDirection: 'column', gap: 16 }}
       >
         {/* ── 1단: 즉답 요약 (항상 표시) ── */}
         <div
@@ -406,7 +406,7 @@ export function Detail({
           background: `linear-gradient(to top, ${Z.cream} 82%, transparent)`,
         }}
       >
-        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '0 16px 9px', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '0 16px 9px' }}>
           {suggested.map((q) => (
             <button
               key={q}

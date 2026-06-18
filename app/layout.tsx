@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SupportWidget } from "@/components/support/SupportWidget";
+import { FrameBackground } from "@/components/layout/FrameBackground";
 
 const myeongjo = Nanum_Myeongjo({
   subsets: ["latin"],
@@ -50,7 +51,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           - 데스크탑: 중앙 정렬 컬럼이 480px 고정 폭으로 가운데 정렬
           - body의 radial-gradient 배경은 globals.css 에서 처리
         */}
-        <div className="relative flex min-h-dvh w-full justify-center">
+        <FrameBackground />
+        <div className="relative z-10 flex min-h-dvh w-full justify-center">
           <div
             // transform: translateZ(0)으로 이 컬럼을 CSS containing block으로 만든다.
             // 결과: 자식 트리의 position:fixed 시트(PickerSheet/ShareSheet/QASheet/LoginGate)와
