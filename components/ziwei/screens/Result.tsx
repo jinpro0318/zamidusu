@@ -8,7 +8,7 @@ import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
-import { DepositSheet, type BankInfo } from '@/components/ziwei/sheets/DepositSheet';
+import type { BankInfo } from '@/components/ziwei/sheets/DepositSheet';
 import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
@@ -42,15 +42,9 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, i
   const [plateSel, setPlateSel] = useState('命宮');
   const [gate, setGate] = useState<GateState | null>(null);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [depositOpen, setDepositOpen] = useState(false);
 
-  // 프리미엄 카드 탭 분기 (테스트/준비중 단계):
-  //  - 모든 프리미엄 카드는 실제 콘텐츠로 가지 않고 무통장입금 모달을 띄운다.
-  //  - 비회원은 먼저 로그인 게이트.
-  const handlePremiumSelect = (href: string) => {
-    if (!loggedIn) return openJoinGate(href);
-    return setDepositOpen(true);
-  };
+  // 테스트 기간: 결제 없이 실제 기능을 체험. 프리미엄 카드 → 해당 페이지로 이동(비회원은 로그인 유도).
+  const handlePremiumSelect = (href: string) => activate(href);
 
   // 프리미엄 진입 게이트 → 하단 바텀시트(LoginGate)로 "가입하면 열려요" + 로그인/가입.
   // next: 로그인 후 복귀할 내부 경로.
@@ -315,22 +309,12 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, i
         </button>
       </div>
 
-      {/* ✦ 더 깊이 알아보기 — 프리미엄 기능 소개. 깊은풀이는 결제(isPaid) 기준 잠금. */}
+      {/* ✦ 더 깊이 알아보기 — 테스트 기간: 결제 없이 해당 기능 페이지로 바로 이동. */}
       <PremiumSection
         loggedIn={canAccessPremium}
-        isPaid={isPaid}
         chartId={chartId}
         onSelect={handlePremiumSelect}
       />
-
-      {chartId && (
-        <DepositSheet
-          open={depositOpen}
-          onClose={() => setDepositOpen(false)}
-          chartId={chartId}
-          bank={bank ?? { name: '', account: '', holder: '' }}
-        />
-      )}
 
       <ShareSheet
         open={share}

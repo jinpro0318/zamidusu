@@ -6,7 +6,6 @@ import {
 } from "ai";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { hasPurchased } from "@/lib/purchase";
 import {
   buildSystemPrompt,
   buildDeepReadingPrompt,
@@ -49,13 +48,9 @@ export async function POST(req: Request) {
   const chart = await db.chart.findFirst({ where: { id: chartId, userId } });
   if (!chart) return new Response("Not found", { status: 404 });
 
-  // 깊은풀이(mode:"deep")만 결제(PAID) 필수. 궁별 상세풀이·대운 흐름은 로그인만으로 허용.
-  // 캐시 조회·쿼터·생성보다 먼저 차단 → 미결제자는 DeepReading 캐시 응답도 못 받음.
+  // 테스트 기간: 결제 게이트 없이 로그인 회원이면 모두 이용(정식 전환 시 isDeep+hasPurchased 게이트 복구).
   const isDeep = mode === "deep";
   const isTimeline = mode === "timeline";
-  if (isDeep && !(await hasPurchased(userId, chart.id))) {
-    return new Response("깊은 풀이는 결제 후 이용할 수 있어요.", { status: 403 });
-  }
 
   const ent = await getEntitlements(userId);
   const modelVersion = modelIdFor(ent.plan);

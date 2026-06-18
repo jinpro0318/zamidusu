@@ -4,7 +4,6 @@
 // 계좌정보(서버 env에서 받은 값)를 표시하고 입금자명을 받아 Purchase(PENDING)를 생성한다.
 // 입금확인(PAID)은 관리자가 수동으로 처리하므로 여기선 "입금 확인 후 열려요"까지 안내한다.
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 
 export interface BankInfo {
@@ -24,7 +23,6 @@ export function DepositSheet({
   chartId?: string;
   bank: BankInfo;
 }) {
-  const router = useRouter();
   const [depositorName, setDepositorName] = useState('');
   const [sending] = useState(false);
   const [done] = useState(false); // 정식 전환 시 "입금 확인 후 열려요" 완료 화면 복구용
@@ -59,9 +57,9 @@ export function DepositSheet({
       setErr('입금자명을 입력해 주세요.');
       return;
     }
-    // 테스트 단계: 실제 결제 처리/잠금해제 없이 안내 페이지로 이동.
+    // 테스트 기간: 결제 플로우 비활성(현재 미사용 컴포넌트). 정식 전환 시 POST /api/purchase 복구.
     setErr(null);
-    router.push('/pending');
+    close();
   };
 
   const hasBank = !!(bank.name && bank.account);

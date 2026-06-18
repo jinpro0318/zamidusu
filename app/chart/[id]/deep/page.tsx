@@ -1,14 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { hasPurchased } from "@/lib/purchase";
 import { DeepReadingClient } from "./client";
 
-export const metadata = { title: "깊은 풀이" };
+export const metadata = { title: "12궁 전체 풀이" };
 
 export default async function DeepPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  // 깊은풀이 = 로그인 + 결제(PAID) 전용. 데이터 렌더 전 서버에서 차단.
+  // 테스트 기간: 로그인 회원이면 결제 없이 체험 가능(정식 전환 시 hasPurchased 게이트 복구).
   const session = await auth();
   if (!session?.user) {
     redirect(`/sign-in?next=${encodeURIComponent(`/chart/${id}/deep`)}`);
@@ -17,10 +16,6 @@ export default async function DeepPage({ params }: { params: Promise<{ id: strin
 
   const chart = await db.chart.findFirst({ where: { id, userId } });
   if (!chart) notFound();
-
-  if (!(await hasPurchased(userId, chart.id))) {
-    redirect(`/chart/${id}`);
-  }
 
   return <DeepReadingClient chartId={chart.id} subjectName={chart.subjectName ?? undefined} />;
 }
