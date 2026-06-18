@@ -10,7 +10,9 @@ import { hasPurchased } from "@/lib/purchase";
 import {
   buildSystemPrompt,
   buildDeepReadingPrompt,
+  buildTimelinePrompt,
   DEEP_SECTION,
+  TIMELINE_SECTION,
   PROMPT_VERSION,
 } from "@/lib/ai/prompt-builder";
 import { pickModel, modelIdFor } from "@/lib/ai/gateway";
@@ -47,9 +49,10 @@ export async function POST(req: Request) {
   const chart = await db.chart.findFirst({ where: { id: chartId, userId } });
   if (!chart) return new Response("Not found", { status: 404 });
 
-  // 깊은풀이(mode:"deep")만 결제(PAID) 필수. 궁별 상세풀이는 로그인만으로 허용.
+  // 깊은풀이(mode:"deep")만 결제(PAID) 필수. 궁별 상세풀이·대운 흐름은 로그인만으로 허용.
   // 캐시 조회·쿼터·생성보다 먼저 차단 → 미결제자는 DeepReading 캐시 응답도 못 받음.
   const isDeep = mode === "deep";
+  const isTimeline = mode === "timeline";
   if (isDeep && !(await hasPurchased(userId, chart.id))) {
     return new Response("깊은 풀이는 결제 후 이용할 수 있어요.", { status: 403 });
   }
@@ -57,20 +60,24 @@ export async function POST(req: Request) {
   const ent = await getEntitlements(userId);
   const modelVersion = modelIdFor(ent.plan);
 
-  // "초기 풀이" 여부 — 궁별(palaceKey) 또는 깊은풀이(deep)가 고정 initPrompt 1회로 트리거(messages 1개).
+  // 깊은풀이·대운흐름은 DeepReading(section)에 캐시, 궁별은 PalaceReading.
+  const usesDeepCache = isDeep || isTimeline;
+  const deepSection = isTimeline ? TIMELINE_SECTION : DEEP_SECTION;
+
+  // "초기 풀이" 여부 — 궁별/깊은풀이/대운흐름이 고정 initPrompt 1회로 트리거(messages 1개).
   // 후속 자유질문은 messages가 더 길다. 캐시·thinking-off·maxTokens는 초기 풀이에만 적용.
   const isInitialReading =
-    (!!palaceKey || isDeep) && Array.isArray(messages) && messages.length === 1;
+    (!!palaceKey || usesDeepCache) && Array.isArray(messages) && messages.length === 1;
 
   // ── 캐시 조회 단락 (쿼터 증가 이전) ──
-  // 동일 키면 LLM 호출·쿼터 소비 없이 저장된 풀이를 즉시 반환. 깊은풀이=DeepReading, 궁별=PalaceReading.
+  // 동일 키면 LLM 호출·쿼터 소비 없이 저장된 풀이를 즉시 반환. 깊은풀이/대운흐름=DeepReading, 궁별=PalaceReading.
   if (isInitialReading) {
-    const cached = isDeep
+    const cached = usesDeepCache
       ? await db.deepReading.findUnique({
           where: {
             chartId_section_modelVersion_promptVersion: {
               chartId: chart.id,
-              section: DEEP_SECTION,
+              section: deepSection,
               modelVersion,
               promptVersion: PROMPT_VERSION,
             },
@@ -100,20 +107,22 @@ export async function POST(req: Request) {
   // 비로그인 차단은 위 401에서 처리, 깊은풀이 결제는 위 403에서 처리.
 
   const payload = JSON.parse(chart.payload);
-  const system = isDeep
-    ? buildDeepReadingPrompt({
-        payload,
-        subjectName: chart.subjectName,
-        gender: chart.gender,
-        plan: ent.plan,
-      })
-    : buildSystemPrompt({
-        payload,
-        subjectName: chart.subjectName,
-        gender: chart.gender,
-        plan: ent.plan,
-        palaceKey: palaceKey ?? undefined,
-      });
+  const system = isTimeline
+    ? buildTimelinePrompt({ payload, subjectName: chart.subjectName, gender: chart.gender })
+    : isDeep
+      ? buildDeepReadingPrompt({
+          payload,
+          subjectName: chart.subjectName,
+          gender: chart.gender,
+          plan: ent.plan,
+        })
+      : buildSystemPrompt({
+          payload,
+          subjectName: chart.subjectName,
+          gender: chart.gender,
+          plan: ent.plan,
+          palaceKey: palaceKey ?? undefined,
+        });
 
   const result = streamText({
     model: pickModel(ent.plan),
@@ -124,7 +133,7 @@ export async function POST(req: Request) {
     // 후속 자유질문은 기본값 유지(추론 깊이 보존).
     ...(isInitialReading
       ? {
-          maxTokens: isDeep ? 2600 : 1400, // 깊은풀이는 4섹션 종합이라 더 길다
+          maxTokens: isDeep ? 2600 : isTimeline ? 2400 : 1400, // 깊은풀이·대운흐름은 더 길다
           providerOptions: {
             google: { thinkingConfig: { thinkingBudget: 0 } },
           },
@@ -149,19 +158,19 @@ export async function POST(req: Request) {
         });
         // 초기 풀이만 캐시에 저장(버전 키 포함). 후속 자유질문은 저장 안 함.
         if (isInitialReading && text?.trim()) {
-          if (isDeep) {
+          if (usesDeepCache) {
             await db.deepReading.upsert({
               where: {
                 chartId_section_modelVersion_promptVersion: {
                   chartId: chart.id,
-                  section: DEEP_SECTION,
+                  section: deepSection,
                   modelVersion,
                   promptVersion: PROMPT_VERSION,
                 },
               },
               create: {
                 chartId: chart.id,
-                section: DEEP_SECTION,
+                section: deepSection,
                 modelVersion,
                 promptVersion: PROMPT_VERSION,
                 content: text,

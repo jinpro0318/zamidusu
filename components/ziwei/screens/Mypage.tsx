@@ -118,35 +118,7 @@ export function Mypage({
           </div>
         </div>
 
-        {/* ── 프리미엄 업그레이드 카드 (무료 회원 전용) ── */}
-        {plan === 'FREE' && (
-          <div
-            style={{
-              position: 'relative', overflow: 'hidden',
-              background: `linear-gradient(160deg, ${Z.p850}, ${Z.p700})`,
-              border: '1px solid rgba(227,195,107,0.3)', borderRadius: 18, padding: '18px 18px 16px',
-            }}
-          >
-            <div style={{ fontFamily: SANS, fontSize: 12, fontWeight: 800, color: Z.goldBright, letterSpacing: '0.04em' }}>PREMIUM</div>
-            <div style={{ fontFamily: SERIF, fontSize: 17, fontWeight: 800, color: '#fff', marginTop: 5, lineHeight: 1.45 }}>
-              프리미엄으로 업그레이드
-            </div>
-            <div style={{ fontFamily: SANS, fontSize: 12.5, color: 'rgba(255,255,255,0.72)', marginTop: 6, lineHeight: 1.55 }}>
-              12궁 전체 상세 풀이 · 대운 타임라인 · 무제한 AI 해석 · PDF 리포트까지 한 번에.
-            </div>
-            <button
-              onClick={() => showToast('프리미엄 업그레이드 (준비 중)')}
-              style={{
-                marginTop: 13, width: '100%', cursor: 'pointer', border: 'none', borderRadius: 13, padding: '13px',
-                fontFamily: SANS, fontSize: 14.5, fontWeight: 800, color: Z.ink,
-                background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
-                boxShadow: '0 6px 18px rgba(199,162,63,0.4)',
-              }}
-            >
-              프리미엄 업그레이드
-            </button>
-          </div>
-        )}
+        {/* 프리미엄 업그레이드(구독) 카드 제거 — 깊은풀이는 명반별 단건 구매 모델로 전환됨. */}
 
         {/* ── 메뉴 ── */}
         <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 18, overflow: 'hidden' }}>

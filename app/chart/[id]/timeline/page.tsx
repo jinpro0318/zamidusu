@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DecadalTimeline } from "@/components/timeline/DecadalTimeline";
+import { TimelineAnalysis } from "@/components/timeline/TimelineAnalysis";
 import { extractDecadals, currentDecadalAge } from "@/lib/iztro/horoscope";
 import { ChevronLeft } from "lucide-react";
 
@@ -54,6 +55,13 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
         <br />
         절대적 길흉이 아니라 흐름의 강도 지표로 봐주세요.
       </p>
+
+      {/* 연령대별 흐름 분석 (AI) — 시기별 흐름 전용 */}
+      <section className="mt-10">
+        <h2 className="font-display text-xl font-bold gold-text">연령대별 흐름 분석</h2>
+        <p className="mt-1 mb-4 text-xs text-muted">대운 구간마다 그 시기의 운 흐름을 짚어드려요.</p>
+        <TimelineAnalysis chartId={id} />
+      </section>
     </main>
   );
 }

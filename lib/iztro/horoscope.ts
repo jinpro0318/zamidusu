@@ -12,7 +12,7 @@ export interface DecadalSlice {
 // 별도로 라이브 객체를 호출하거나, payload에서 대운 정보를 재추출하는 헬퍼.
 export function extractDecadals(payload: any): DecadalSlice[] {
   const palaces = payload.palaces ?? [];
-  return palaces
+  const slices: DecadalSlice[] = palaces
     .filter((p: any) => p.decadal?.range)
     .map((p: any) => {
       const [startAge, endAge] = p.decadal.range;
@@ -28,6 +28,11 @@ export function extractDecadals(payload: any): DecadalSlice[] {
       };
     })
     .sort((a: DecadalSlice, b: DecadalSlice) => a.startAge - b.startAge);
+
+  // 대운수(첫 대운 시작 나이) 기준 10대운(대운수~대운수+99)까지만.
+  // iztro는 12대운(~대운수+119)을 주지만, 대운수+100세부터 시작하는 구간은 제외한다.
+  const daewoonsu = slices[0]?.startAge ?? 0;
+  return slices.filter((s) => s.startAge < daewoonsu + 100);
 }
 
 // 길성/흉성/사화를 간단히 점수화 (0-100 정규화).

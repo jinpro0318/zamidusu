@@ -193,3 +193,52 @@ ${decadalLines || "- (대운 데이터 없음 — 시기 단정 금지)"}
 - 별 한자는 위 [12궁 주성·사화]에 제공된 한자를 그대로 사용하라(임의 생성 금지. 예: 천동 → 天同, 天童 아님).
 - 별 밝기는 "매우 밝게/밝게/보통/약하게" 같은 한국어로 서술하고, +3 같은 숫자나 [[ ]] 코드·토큰으로 출력하지 마라.`;
 }
+
+// ── 대운 타임라인 "연령대별 흐름 분석" (시기별 흐름 전용) ──
+// 12궁 전체풀이/궁별 상세풀이와 중복 금지 — 오직 각 대운 시기의 흐름·변화·대비만.
+export const TIMELINE_SECTION = "timeline"; // DeepReading.section 값
+
+export const TIMELINE_INIT_PROMPT =
+  "내 명반의 '연령대별 흐름 분석'을 작성해주세요. 아래 [대운 구간]의 각 구간마다 블록 하나씩, 그 구간의 나이 범위를 대괄호 머리글로 시작하세요(예: [16-25]). 각 블록은 그 시기의 운 흐름·전환점·태도를 2~3문장으로만 풀어주세요. 성격이나 개별 별 의미를 다시 설명하지 말고, 오직 '그 시기에 어떤 흐름인지'에 집중해 주세요.";
+
+export function buildTimelinePrompt(opts: {
+  payload: AstrolabePayload;
+  subjectName?: string | null;
+  gender: string;
+}) {
+  const { payload: p, subjectName, gender } = opts;
+
+  // 대운수 기준 10대운(대운수~대운수+99)만. extractDecadals와 동일한 캡.
+  const sorted = p.palaces
+    .filter((pal) => Array.isArray(pal.decadal?.range) && pal.decadal!.range.length >= 2)
+    .map((pal) => ({ pal, start: pal.decadal!.range[0], end: pal.decadal!.range[1] }))
+    .sort((a, b) => a.start - b.start);
+  const daewoonsu = sorted[0]?.start ?? 0;
+  const decadalLines = sorted
+    .filter(({ start }) => start < daewoonsu + 100)
+    .map(({ pal, start, end }) => {
+      const stars = pal.majorStars.map(formatStar).join(", ");
+      return `- [${start}-${end}] ${pal.name}(${pal.heavenlyStem}${pal.earthlyBranch}) 대운: ${stars || "공궁(空宮)"}`;
+    })
+    .join("\n");
+
+  return `너는 자미두수(紫微斗數) 상담가다. 아래 [대운 구간]을 바탕으로 "연령대별 흐름"만 짚어준다.
+사용자는 자기 명반을 직접 들고 온 당사자다. 항상 "당신"이라 2인칭으로 따뜻하게 말한다.
+
+[사용자 명반]
+- 본명: ${subjectName ?? "익명"} (${gender === "MALE" ? "남" : "여"})
+- 양력: ${p.solarDate}, 음력: ${p.lunarDate}, 오행국: ${p.fiveElementsClass}
+
+[대운 구간(나이-궁-주성)]
+${decadalLines || "- (대운 데이터 없음)"}
+
+## 절대 규칙 — 중복 금지
+이 글은 '시기별 흐름'만 다룬다. 12궁 전체풀이·궁별 상세풀이에서 다루는 성격·별 의미·자리 해석을 **다시 설명하지 마라**.
+각 구간마다 "그 나이대에 운이 어떻게 흐르는지(상승/정비/전환/도전 등), 무엇을 준비·주의하면 좋은지"에만 집중하라.
+
+## 출력 형식
+- 위 [대운 구간]의 **각 구간마다 블록 하나**. 블록은 그 구간의 나이 범위를 대괄호 머리글로 시작하라. 예: [${daewoonsu}-${daewoonsu + 9}]
+- 머리글 아래 한국어 2~3문장(시기 흐름 중심). 머리글 외 제목·마크다운 기호 금지.
+- 단정적 운명론 대신 가능성·경향으로. 따뜻하고 응원하는 톤.
+- 용어가 꼭 필요하면 [[term|표시이름(한자)|아이콘키|짧은 설명]] 형식으로만 마킹(아이콘키: star/palace/concept). 한자만 단독 노출 금지.`;
+}
