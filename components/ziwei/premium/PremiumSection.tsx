@@ -23,7 +23,7 @@ export interface PremiumFeature {
 export function premiumFeatures(chartId?: string): PremiumFeature[] {
   const cid = chartId ?? '';
   return [
-    { key: 'deep', icon: '🔮', title: '깊은 풀이', desc: '12궁을 가로지르는 종합 풀이', href: `/chart/${cid}/deep` },
+    { key: 'deep', icon: '🔮', title: '깊은 풀이', desc: '궁별 풀이를 하나로 연결한 종합 소견 · 인생 흐름과 전략까지', href: `/chart/${cid}/deep` },
     { key: 'full', icon: '🗂️', title: '12궁 전체 상세 풀이', desc: '열두 자리를 모두 깊이 있게', href: `/chart/${cid}/ai` },
     { key: 'timeline', icon: '📈', title: '대운·세운 타임라인', desc: '시기별 운의 흐름을 한눈에', href: `/chart/${cid}/timeline` },
     { key: 'compat', icon: '💞', title: '궁합·인연 분석', desc: '상대와의 인연을 명반으로 비교', href: '/compatibility' },
@@ -56,9 +56,22 @@ export function PremiumSection({
         <div style={{ fontFamily: SANS, fontSize: 11.5, fontWeight: 700, color: Z.p600, letterSpacing: '0.06em' }}>
           ✦ 더 깊이 알아보기
         </div>
-        <h2 style={{ margin: '3px 0 0', fontFamily: SERIF, fontSize: 17, fontWeight: 800, color: Z.ink, letterSpacing: '-0.01em' }}>
-          {loggedIn ? '내게 맞는 깊은 풀이' : '가입하면 더 깊은 풀이가 열려요'}
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0, fontFamily: SERIF, fontSize: 17, fontWeight: 800, color: Z.ink, letterSpacing: '-0.01em' }}>
+            {loggedIn ? '내게 맞는 깊은 풀이' : '가입하면 더 깊은 풀이가 열려요'}
+          </h2>
+          {/* 유료 영역 표시 — 결제 전에만 노출(과하지 않게, 보라 톤) */}
+          {!isPaid && (
+            <span
+              style={{
+                fontFamily: SANS, fontSize: 10.5, fontWeight: 700, color: Z.p600,
+                background: Z.p50, border: `1px solid ${Z.p100}`, borderRadius: 999, padding: '2px 8px',
+              }}
+            >
+              유료 콘텐츠
+            </span>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -66,13 +79,8 @@ export function PremiumSection({
           const isDeep = f.key === DEEP_KEY;
           // 깊은풀이 카드는 결제(PAID) 기준 잠금, 나머지는 로그인 기준 잠금.
           const locked = isDeep ? !isPaid : !loggedIn;
-          const cta = isDeep
-            ? isPaid
-              ? '보러 가기 →'
-              : '1,900원으로 열기 →'
-            : loggedIn
-              ? '보러 가기 →'
-              : '가입하고 보기 →';
+          // 깊은풀이도 액션 라벨은 다른 카드와 동일하게 "보러 가기 →"로 통일(가격은 보조문구로 분리).
+          const cta = !isDeep && !loggedIn ? '가입하고 보기 →' : '보러 가기 →';
           return (
             <button
               key={f.key}
@@ -94,8 +102,14 @@ export function PremiumSection({
               <span aria-hidden style={{ fontSize: 20 }}>{f.icon}</span>
               <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3, paddingRight: 14 }}>{f.title}</span>
               <span style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.45 }}>{f.desc}</span>
-              <span style={{ marginTop: 'auto', fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>
-                {cta}
+              {/* 하단 위계: [보조문구(유료·미결제 시)] → [보러 가기 →] */}
+              <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {isDeep && !isPaid && (
+                  <span style={{ fontFamily: SANS, fontSize: 10.5, fontWeight: 600, color: Z.ink3 }}>
+                    1,900원 · 구매 후 열람
+                  </span>
+                )}
+                <span style={{ fontFamily: SANS, fontSize: 11, fontWeight: 700, color: Z.p600 }}>{cta}</span>
               </span>
             </button>
           );
