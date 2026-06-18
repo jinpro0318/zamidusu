@@ -10,6 +10,20 @@ const apiKey =
   process.env.AI_GATEWAY_API_KEY ??
   "";
 
+// TEMP-DIAGNOSTIC: Gemini 키 확인(전체값 금지, 존재/길이/마지막4자리만). 진단 후 제거.
+console.log("[TEMP-DIAGNOSTIC] gemini-key", {
+  envName: process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    ? "GOOGLE_GENERATIVE_AI_API_KEY"
+    : process.env.GEMINI_API_KEY
+      ? "GEMINI_API_KEY"
+      : process.env.AI_GATEWAY_API_KEY
+        ? "AI_GATEWAY_API_KEY"
+        : "(none)",
+  present: apiKey.length > 0,
+  len: apiKey.length,
+  last4: apiKey.slice(-4),
+});
+
 const provider = createGoogleGenerativeAI({ apiKey });
 
 // 플랜별 Gemini 모델 분기.

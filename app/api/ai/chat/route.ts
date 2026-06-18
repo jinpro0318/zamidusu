@@ -104,11 +104,27 @@ export async function POST(req: Request) {
     update: { turns: { increment: 1 } },
   });
   if (usage.turns > ent.aiTurnsPerDay) {
+    // TEMP-DIAGNOSTIC: 이 402는 (b) 우리 코드의 일일 한도 강제반환(Gemini 아님). 진단 후 제거.
+    console.log("[TEMP-DIAGNOSTIC] 402-source=(b)DAILY_QUOTA", {
+      plan: ent.plan,
+      turns: usage.turns,
+      limit: ent.aiTurnsPerDay,
+      isDeep,
+      userId,
+    });
     return new Response(
       `오늘의 AI 사용량을 모두 사용했어요. (한도 ${ent.aiTurnsPerDay}턴)`,
       { status: 402 },
     );
   }
+
+  // TEMP-DIAGNOSTIC: 쿼터 게이트 통과 → 이제 Gemini 호출. 진단 후 제거.
+  console.log("[TEMP-DIAGNOSTIC] reached-gemini", {
+    plan: ent.plan,
+    turns: usage.turns,
+    limit: ent.aiTurnsPerDay,
+    isDeep,
+  });
 
   const payload = JSON.parse(chart.payload);
   const system = isDeep
@@ -141,6 +157,16 @@ export async function POST(req: Request) {
           },
         }
       : {}),
+    // TEMP-DIAGNOSTIC: 여기 찍히면 402가 아니라 Gemini-origin 에러(a). 원본 status/message 그대로. 진단 후 제거.
+    onError: (e) => {
+      const err: any = (e as any)?.error ?? e;
+      console.error("[TEMP-DIAGNOSTIC] gemini-error=(a)", {
+        name: err?.name,
+        message: err?.message,
+        statusCode: err?.statusCode ?? err?.status,
+        responseBody: err?.responseBody,
+      });
+    },
     onFinish: async ({ text, usage }) => {
       try {
         await db.aiConversation.upsert({
