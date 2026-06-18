@@ -51,6 +51,18 @@ const ICONS = TERM_TYPES;
 // → 파이프 없는 [[성향]] 같은 머리글 잔재는 마킹으로 보지 않는다(버튼화하지 않음).
 const MARK_BLOCK_RE = /\[\[([^[\]]*\|[^[\]]*)\]\]/g;
 
+// 알려진 별 한자 오타 교정(확장 가능). AI가 가끔 정자 한자를 틀리게 출력함.
+const STAR_HANJA_FIX: Record<string, string> = { 天童: '天同' };
+
+// 렌더 안전망 — 사용자에게 절대 노출되면 안 되는 잔재 정리.
+//  1) 파이프(|)가 없는 malformed [[...]] 토큰 제거 (유효 마킹 [[a|b|..]]은 보존). 예: "[[+3]]" → ""
+//  2) 알려진 별 한자 오타 교정 (天童 → 天同)
+export function sanitizeMarkup(text: string): string {
+  let out = text.replace(/\[\[([^[\]]*)\]\]/g, (m, inner) => (inner.includes('|') ? m : ''));
+  for (const [wrong, right] of Object.entries(STAR_HANJA_FIX)) out = out.split(wrong).join(right);
+  return out;
+}
+
 // 표시이름에서 한글 음만 추출 ("태양(太陽)" → "태양")
 function koreanOf(label: string): string {
   return label.split('(')[0].trim();
@@ -355,8 +367,11 @@ export function AiText({ text, glossary }: { text: string; glossary?: Record<str
     setOpen((cur) => (cur?.anchor === el ? null : { term: t, anchor: el }));
   const close = () => setOpen(null);
 
+  // 렌더 전 안전망: malformed [[..]] 제거 + 별 한자 오타 교정.
+  const safe = sanitizeMarkup(text);
+
   // 자기 텍스트 사전 + 상위 주입 사전 병합 (둘 다 같은 응답이므로 합집합)
-  const effective = { ...glossary, ...buildGlossary(text) };
+  const effective = { ...glossary, ...buildGlossary(safe) };
   // 설명 해소: 마킹 직접 설명 → 응답 내 동일 용어(별칭 매칭) 설명 → 별 사전 → 없음
   const resolve = (p: ParsedMark) => {
     if (p.rawDesc) return p.rawDesc;
@@ -364,7 +379,7 @@ export function AiText({ text, glossary }: { text: string; glossary?: Record<str
     return starDesc(p.term, p.label) || '';
   };
 
-  const lines = text.split('\n');
+  const lines = safe.split('\n');
   return (
     <>
       {lines.map((rawLine, li) => (

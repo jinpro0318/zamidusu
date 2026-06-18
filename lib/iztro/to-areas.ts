@@ -3,6 +3,7 @@
 
 import type { Area, BrightnessKey } from "@/lib/ziwei-types";
 import type { AstrolabePayload, PalaceLite } from "@/lib/iztro/types";
+import { STAR_HANJA } from "@/lib/star-names"; // 별 한자 매핑 단일 출처
 
 // iztro의 한국어 궁명 → ziwei-app의 한자 cn 매핑
 const NAME_MAP: Record<string, { cn: string; h: string; ko: string }> = {
@@ -38,14 +39,7 @@ const POSITION: Record<string, { c: number; r: number }> = {
   子女宮: { c: 4, r: 4 },
 };
 
-// 한국어 별명 → 한자 (Plate가 한자 별을 기대)
-const STAR_HANJA: Record<string, string> = {
-  자미: "紫微", 천기: "天機", 태양: "太陽", 무곡: "武曲", 천동: "天同",
-  염정: "廉貞", 천부: "天府", 태음: "太陰", 탐랑: "貪狼", 거문: "巨門",
-  천상: "天相", 천량: "天梁", 칠살: "七殺", 파군: "破軍",
-  좌보: "左輔", 우필: "右弼", 문창: "文昌", 문곡: "文曲",
-  녹존: "祿存", 천마: "天馬",
-};
+// 한국어 별명 → 한자: lib/star-names.ts의 STAR_HANJA 재사용(단일 출처).
 
 // iztro brightness → BR 매핑 (廟旺平陷)
 const BRIGHTNESS_MAP: Record<string, BrightnessKey> = {

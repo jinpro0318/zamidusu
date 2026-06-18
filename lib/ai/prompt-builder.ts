@@ -1,9 +1,20 @@
-import type { AstrolabePayload } from "@/lib/iztro/types";
+import type { AstrolabePayload, StarLite } from "@/lib/iztro/types";
+import { starHanja, brightnessLabel } from "@/lib/star-names";
 
 // 초기 궁 풀이 캐시(PalaceReading)의 promptVersion 키로 사용.
 // 아래 buildSystemPrompt / initPrompt 의 의미를 바꾸는 변경을 하면 수동으로 올린다("v2"...).
 // 버전이 바뀌면 캐시 키가 달라져 옛 캐시는 더 이상 조회되지 않고 새로 생성·저장된다.
-export const PROMPT_VERSION = "v1";
+// v2: 별 한자(정자)·밝기를 자연어 라벨로 주입 + 코드/숫자 토큰 금지 규칙 추가.
+export const PROMPT_VERSION = "v2";
+
+// 별 한 개를 프롬프트용 텍스트로: "천동(天同, 밝게)·화록".
+// 정자 한자(starHanja)와 한국어 밝기 라벨(brightnessLabel)을 주입해 AI가 한자/밝기를 임의 생성하지 않게 한다.
+function formatStar(s: StarLite): string {
+  const hj = starHanja(s.name);
+  const lbl = brightnessLabel(s.brightness);
+  const paren = [hj !== s.name ? hj : null, lbl || null].filter(Boolean).join(", ");
+  return `${s.name}${paren ? `(${paren})` : ""}${s.mutagen ? `·${s.mutagen}` : ""}`;
+}
 
 export function buildSystemPrompt(opts: {
   payload: AstrolabePayload;
@@ -16,9 +27,7 @@ export function buildSystemPrompt(opts: {
 
   const palaceLines = p.palaces
     .map((pal) => {
-      const stars = pal.majorStars
-        .map((s) => `${s.name}${s.brightness ? `(${s.brightness})` : ""}${s.mutagen ? `·${s.mutagen}` : ""}`)
-        .join(", ");
+      const stars = pal.majorStars.map(formatStar).join(", ");
       return `- ${pal.name}(${pal.heavenlyStem}${pal.earthlyBranch}): ${stars || "공궁(空宮)"}`;
     })
     .join("\n");
@@ -57,6 +66,8 @@ ${palaceLines}
   - 예: "천이궁(遷移宮, 바깥 활동·대인관계·사회생활을 보는 자리)"
   - 예: "신주(身主, 나를 움직이는 핵심 기운)"
 - 어려운 한자는 반드시 한글 음을 함께 적어라. 한자만 단독 노출 금지. (遷移宮 X → 천이궁(遷移宮) O)
+- 별 한자는 위 [12궁 주성·사화]에 **제공된 한자를 그대로** 사용하라(임의로 한자를 만들지 마라). 예: 천동 → 天同(天童 아님).
+- 별의 밝기는 **"매우 밝게 / 밝게 / 보통 / 약하게"** 같은 한국어로 자연스럽게 서술하라. 밝기를 **+3 같은 숫자나 [[ ]] 같은 코드·토큰으로 절대 출력하지 마라.** (밝기·점수는 용어가 아니므로 6번 마킹 대상도 아니다.)
 - 같은 용어가 반복될 때는 두 번째부터 한글만 써도 된다. (매번 설명 반복 금지)
 - 별 이름(태양, 거문, 천동, 태음, 화성 등)은 "어떤 성질의 별인지"를 일상 언어로 한 줄 풀어줘라.
   - 예: "태양(太陽, 밝게 비추며 베푸는 데 후한 기운의 별)"
@@ -135,9 +146,7 @@ export function buildDeepReadingPrompt(opts: {
 
   const palaceLines = p.palaces
     .map((pal) => {
-      const stars = pal.majorStars
-        .map((s) => `${s.name}${s.brightness ? `(${s.brightness})` : ""}${s.mutagen ? `·${s.mutagen}` : ""}`)
-        .join(", ");
+      const stars = pal.majorStars.map(formatStar).join(", ");
       return `- ${pal.name}(${pal.heavenlyStem}${pal.earthlyBranch}): ${stars || "공궁(空宮)"}`;
     })
     .join("\n");
@@ -180,5 +189,7 @@ ${decadalLines || "- (대운 데이터 없음 — 시기 단정 금지)"}
 - 별·궁·개념 용어는 [[term|표시이름(한자)|아이콘키|짧은 설명]] 형식으로 마킹하라.
   - 아이콘키: star(별) / palace(궁) / concept(그 외 개념). 이모지 직접 사용 금지.
   - 예: [[命宮|명궁(命宮)|palace|타고난 성격과 인생의 큰 틀을 보는 자리]], [[太陽|태양(太陽)|star|밝게 베푸는 기운의 별]]
-  - 한자만 단독 노출 금지(항상 한글 음 동반). 확실한 용어만 마킹.`;
+  - 한자만 단독 노출 금지(항상 한글 음 동반). 확실한 용어만 마킹.
+- 별 한자는 위 [12궁 주성·사화]에 제공된 한자를 그대로 사용하라(임의 생성 금지. 예: 천동 → 天同, 天童 아님).
+- 별 밝기는 "매우 밝게/밝게/보통/약하게" 같은 한국어로 서술하고, +3 같은 숫자나 [[ ]] 코드·토큰으로 출력하지 마라.`;
 }

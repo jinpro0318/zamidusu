@@ -1,8 +1,17 @@
 # 자미두수(紫微斗數) MVP 기획서
 
-> **버전**: v1.1 (현재 코드 반영)
-> **마지막 업데이트**: 2026-06-10
+> **버전**: v2.0 (현재 코드 반영 — 결제·깊은풀이·3단계 권한 구현)
+> **마지막 업데이트**: 2026-06-18
 > **포지션**: 한국 최초의 **자미두수 단일 특화 + AI 해석 + 모던 모바일-퍼스트 UX** 운명분석 웹서비스
+
+> **v2.0 주요 변경 (이번 마일스톤)**
+> - 💳 **수익화 실구현**: chart 1개 = "깊은 풀이"를 **1,900원 무통장입금** 단건 결제로 영구 잠금해제 (관리자 입금확인 → PAID). `Purchase` 모델 + 결제 안내 모달.
+> - 🔮 **깊은 풀이(전체풀이) 신규**: 궁을 "가로지르는" 종합(궁 상호작용 + 대운 시간축 + 인생 전략). 기존 궁별 상세풀이와 콘텐츠 **중복 금지** 프롬프트.
+> - 🔐 **3단계 서버 권한**: 무료요약(누구나) / 궁별 상세풀이(로그인) / 깊은풀이(결제 PAID). UI 숨김이 아닌 **서버에서 강제**.
+> - ⚡ **AI 응답 캐싱·가속**: `PalaceReading`·`DeepReading` 캐시(버전 키) + Gemini thinking-off + maxTokens로 재방문 0초·첫 토큰 단축.
+> - 🤖 **모델 갱신**: Gemini 2.5 계열(flash-lite/flash/pro)로 통일(1.5 retire 대응).
+> - 📱 **폰 목업 프레임 제거** → 480px 반응형 풀-블리드 컬럼.
+> - 🎧 고객센터 플로팅 위젯(의견 보내기) — 차트 페이지 한정 노출.
 
 ---
 
@@ -45,29 +54,37 @@
 
 | # | 차별점 | 경쟁사 현황 | 우리의 구현 | 수익 기여 |
 |---|---|---|---|---|
-| 1 | **AI 명반 해석 챗봇** | 정적 텍스트만, 또는 GPT-3.5 수준 | Google Gemini + 내 명반 컨텍스트 주입 (플랜별 모델 분기) | 프리미엄 전환 핵심 |
-| 2 | **궁합 분석 (두 명반 비교)** | 자미두수 궁합은 희소 | 자체 점수 알고리즘 (지지 6합·사화 충돌·오행국 상생) | 커플·소개팅 시장 진입 |
-| 3 | **모바일-퍼스트 폰 프레임 UX + 공유 카드** | 1990년대 디자인 | 데스크탑에선 iPhone 14 비율(390×844) 목업, 자색·금색 + Nanum Myeongjo · 인스타·카톡 OG 자동 생성 | 자발적 바이럴 → CAC 절감 |
-| 4 | **대운/유년 인터랙티브 타임라인** | 텍스트 나열 | Recharts 그래프 + "2026년의 나" 클릭 → 즉시 해석 | 재방문 후크 |
+| 1 | **AI 명반 해석 (궁별 상세풀이)** | 정적 텍스트만, 또는 GPT-3.5 수준 | Google Gemini 2.5 + 내 명반 컨텍스트 주입, 결과 캐싱(재방문 0초) | 로그인 유입 후크 |
+| 2 | **깊은 풀이(전체풀이) — 유료** | 거의 부재 | 궁을 "가로지르는" 종합(궁 상호작용·대운 흐름·인생 전략), 궁별 풀이와 **중복 금지** | **단건 결제 수익 핵심** |
+| 3 | **궁합 분석 (두 명반 비교)** | 자미두수 궁합은 희소 | 자체 점수 알고리즘 (지지 6합·사화 충돌·오행국 상생) | 커플·소개팅 시장 진입 |
+| 4 | **모바일-퍼스트 UX + 공유 카드** | 1990년대 디자인 | 480px 반응형 컬럼, 자색·금색 + Nanum Myeongjo · 인스타·카톡 OG 자동 생성 | 자발적 바이럴 → CAC 절감 |
+| 5 | **대운/유년 인터랙티브 타임라인** | 텍스트 나열 | Recharts 그래프(대운 점수) + 깊은풀이의 시간축 서술 | 재방문 후크 |
 
 ---
 
-## 4. 가격 정책 (수익 구조) — 계획
+## 4. 가격 정책 (수익 구조)
 
-> 코드상 결제 라우트는 아직 미구현. 패키지만 설치된 상태(@tosspayments/tosspayments-sdk). 아래는 목표 가격표.
+### 4-1. 현재 구현 — 단건 결제(무통장입금) ✅
 
-| 플랜 | 가격 | 포함 내용 |
-|---|---|---|
-| **무료(게스트 포함)** | 0원 | 명반 1~3개 저장, 12궁 기본 해석, AI 챗 일 5턴(Gemini Flash), 공유 카드 |
-| **건당 프리미엄 해석** | **9,900원** | 단일 명반의 깊이 해석 PDF + 대운/유년 종합 리포트 + AI 100턴 |
-| **PREMIUM 월구독** | **9,900원/월** | 명반 무제한 저장, AI Gemini Flash 일 50턴, 모든 명반 프리미엄 자동 unlock |
-| **PRO 월구독** | **19,900원/월** | + 궁합 무제한, Gemini 2.5 Pro, 우선 지원 |
+MVP 수익화는 **명반(chart) 1개 단위의 "깊은 풀이" 단건 잠금해제**로 시작한다. PG 연동 전 단계로 **무통장입금(수동 계좌이체)** 을 받고 관리자가 입금을 확인해 잠금을 해제한다. 추후 토스 자동결제로 전환할 수 있게 구조(`Purchase.method`)를 남겨둔다.
 
-- 연구독: **−20%** (PREMIUM 95,000원/년, PRO 191,000원/년)
-- 단건 결제: 7일 이내 환불 보장 (전자상거래법 준수)
-- 결제 수단: **Toss Payments** (한국 사용자 친화적, 카드/계좌/카카오페이/네이버페이)
+| 콘텐츠 | 가격 | 접근 조건 | 비고 |
+|---|---|---|---|
+| 무료요약(궁별 2~3줄) | 0원 | 누구나(비회원 포함) | 정적 콘텐츠 |
+| 궁별 상세풀이 (AI) | 0원 | **로그인** 회원 (턴 한도 없음) | 로그인 유입 후크 |
+| **깊은 풀이(전체풀이)** | **1,900원** | **결제(PAID)** — chart 1개 영구 잠금해제 | 단건 수익 |
 
-플랜별 한도는 `lib/entitlements.ts`의 `CONFIG`에 단일 진실원으로 정의(이미 구현됨, 결제 흐름만 미구현).
+**결제 흐름(무통장입금):**
+1. 깊은풀이 잠금 카드 탭 → **무통장입금 모달**(계좌 표시 + 입금자명 입력 + "입금 완료했어요").
+2. 제출 → `POST /api/purchase` → `Purchase{status: PENDING}` 생성/갱신 → "입금 확인 후 열려요" 안내.
+3. **관리자가 입금 확인** → `Purchase.status = PAID`(현재 수동) → 깊은풀이 페이지 잠금 해제.
+4. 계좌정보는 **서버 env**(`BANK_NAME`/`BANK_ACCOUNT`/`BANK_HOLDER`)에서 읽어 표시(하드코딩 없음). 계좌번호는 모달에서 **복사 버튼** 제공.
+
+### 4-2. 향후 확장 (계획)
+
+- **토스 자동결제 전환**: `@tosspayments/tosspayments-sdk`(설치됨) + `Purchase.method="TOSS"`로 확장. env(`NEXT_PUBLIC_TOSS_CLIENT_KEY`/`TOSS_PAYMENTS_SECRET_KEY`)는 이미 준비.
+- **구독제(PREMIUM/PRO)**: `Subscription` 모델·`lib/entitlements.ts`의 `premiumUnlock`로 "구독자는 결제 없이 전체 열람" 우회 지원(스키마·게이팅 chokepoint `lib/purchase.ts`에 준비).
+- 단건 결제 7일 환불 보장(전자상거래법 준수) 등 약관 정비.
 
 ---
 
@@ -83,21 +100,25 @@
 │  DB: Prisma 6 + Supabase Postgres│  pooler(6543) + direct    │
 │                                  │  (5432, migration 용)     │
 │  명반 엔진: iztro v2.5.8 (ko-KR) │  + lunar-typescript       │
-│  AI: AI SDK v4 + @ai-sdk/google  │  Gemini Flash/2.0/2.5 Pro │
-│  결제: @tosspayments/sdk (미구현) │  계획 단계                │
+│  AI: AI SDK v4 + @ai-sdk/google  │  Gemini 2.5 flash-lite/   │
+│                                  │  flash/pro (플랜별)       │
+│  AI 캐싱: PalaceReading/DeepReading│ 버전 키 + thinking-off    │
+│  결제: 무통장입금(구현) +        │  @tosspayments/sdk(설치,  │
+│        Purchase 모델·관리자 확인  │  자동결제는 향후)         │
 │  공유 카드: @vercel/og           │  ImageResponse 1200×630   │
-│  타임라인: Recharts              │  대운/유년 그래프         │
+│  타임라인: Recharts              │  대운 점수 그래프         │
 │  배포: Vercel                    │  Supabase Marketplace 연동│
 └──────────────────────────────────┴──────────────────────────┘
 ```
 
-### 5-1. 모바일-퍼스트 폰 프레임 (`app/layout.tsx`)
+### 5-1. 반응형 풀-블리드 레이아웃 (`app/layout.tsx`)
 
-- **모바일(<sm)**: 콘텐츠가 viewport 전체를 채움 (`w-full h-[100dvh]`)
-- **데스크탑(sm+)**: iPhone 14 비율(390×844) 폰 목업을 화면 중앙에 띄움
-  - 상단에 iOS 상태바 (9:41 + 노치 + 신호·Wi-Fi·배터리) — `mix-blend-mode: difference`로 라이트·다크 배경 자동 대비
-  - 하단에 홈 인디케이터
-- 프레임에 `transform: translateZ(0)` 명시 → `position: fixed` 시트(PickerSheet/ShareSheet 등)가 viewport 대신 프레임에 attach (베젤 밖으로 안 나감)
+> v2.0에서 **iPhone 폰 목업 프레임을 제거**하고 단일 480px 반응형 컬럼으로 단순화했다.
+
+- **모바일**: 콘텐츠가 viewport 전체를 채움 (`w-full h-dvh`)
+- **데스크탑/태블릿**: 중앙 정렬 **480px 고정폭 컬럼**(`max-w-[480px]`), 양옆 여백 — 모든 기기 동일 앱 컬럼.
+- 컬럼에 `transform: translateZ(0)` → `position: fixed` 시트(PickerSheet/ShareSheet/LoginGate/DepositSheet 등)가 viewport 대신 컬럼에 attach.
+- 내부 스크롤 컨테이너(`no-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden`, `data-scroll-root`)가 본문 스크롤 담당 → 고객센터 플로팅 위젯이 이 컨테이너의 scroll을 구독(스크롤 다운 시 숨김).
 
 ---
 
@@ -107,7 +128,7 @@
 /Users/admin/Desktop/zamidusu/
 ├─ app/
 │  ├─ page.tsx                       # 랜딩 (/)
-│  ├─ layout.tsx                     # 폰 프레임 + 상태바 + 홈 인디케이터
+│  ├─ layout.tsx                     # 480px 반응형 컬럼 + 고객센터 위젯
 │  ├─ globals.css · robots.ts · sitemap.ts
 │  ├─ not-found.tsx                  # 커스텀 404 (한국어, 다크 보라)
 │  ├─ sign-in/{page,client}.tsx      # Supabase Auth UI
@@ -117,10 +138,11 @@
 │  ├─ chart/
 │  │  ├─ new/{page,client}.tsx       # 출생정보 입력 폼
 │  │  └─ [id]/
-│  │      ├─ {page,client}.tsx       # 결과 화면 — Hero + 풀-와이드 plate + 12영역
-│  │      ├─ ai/page.tsx             # AI 해석 챗
-│  │      ├─ timeline/page.tsx       # 대운/유년 (Recharts 예정)
-│  │      └─ palace/[key]/{page,client}.tsx  # 단일 궁 디테일
+│  │      ├─ {page,client}.tsx       # 결과 화면 — Hero + 풀-와이드 plate + 12영역 + 프리미엄 섹션
+│  │      ├─ ai/page.tsx             # 12궁 전체 상세풀이 챗 (로그인)
+│  │      ├─ deep/{page,client}.tsx  # 🔮 깊은 풀이 (결제 PAID 서버 게이트)
+│  │      ├─ timeline/page.tsx       # 대운 타임라인 (Recharts)
+│  │      └─ palace/[key]/{page,client}.tsx  # 단일 궁 상세풀이 (로그인)
 │  ├─ compatibility/
 │  │  ├─ {page,form}.tsx
 │  │  └─ [id]/page.tsx               # 궁합 결과
@@ -128,21 +150,28 @@
 │  └─ api/
 │     ├─ charts/{route,[id]/route,[id]/share/route}.ts
 │     ├─ compatibility/route.ts
-│     ├─ ai/chat/route.ts            # Gemini 스트리밍
+│     ├─ ai/chat/route.ts            # Gemini 스트리밍 + 캐시 + 3단계 게이트
+│     ├─ purchase/route.ts           # 무통장입금 신청 (Purchase PENDING)
+│     ├─ feedback/route.ts           # 고객센터 의견
+│     ├─ auth/adopt-guest/route.ts   # 게스트→회원 데이터 인계
 │     └─ og/chart/[id]/route.tsx     # OG 이미지 (id OR shareToken)
 ├─ components/
 │  ├─ ziwei/                         # 핵심 화면·컴포넌트
 │  │  ├─ Plate.tsx                   # 4×4 plate 그리드 (12 셀 button)
 │  │  ├─ atoms.tsx · common.tsx · use-nav.ts
-│  │  ├─ screens/{Onboarding,Input,Result,Detail,Login,Mypage}.tsx
-│  │  └─ sheets/{ShareSheet,QASheet,LoginGate,Toast}.tsx
+│  │  ├─ screens/{Onboarding,Input,Result,Detail,DeepReadingScreen,Login,Mypage}.tsx
+│  │  ├─ premium/{PremiumSection,...}.tsx   # "내게 맞는 깊은 풀이" 섹션·잠금
+│  │  └─ sheets/{ShareSheet,QASheet,LoginGate,DepositSheet,PalaceModal,Toast}.tsx
+│  ├─ support/SupportWidget.tsx      # 고객센터 플로팅 위젯(차트 페이지 한정)
+│  ├─ ai/{ChatPanel,AiText}.tsx      # 챗 UI + 용어 마킹 렌더
 │  ├─ chart/ · share/ · marketing/ · ui/  # 보조 컴포넌트
+├─ hooks/useHideOnScrollDown.ts      # 스크롤 다운 시 위젯 숨김
 ├─ lib/
 │  ├─ iztro/{generate,serialize,horoscope,compatibility,to-areas,types}.ts
-│  ├─ ai/{gateway,prompt-builder,guardrails}.ts   # Gemini 추상화
-│  ├─ supabase/{client,server}.ts
+│  ├─ ai/{gateway,prompt-builder,guardrails}.ts   # Gemini + 궁별/깊은풀이 프롬프트
+│  ├─ supabase/{client,server}.ts · site-url.ts(returnTo)
 │  ├─ share/kakao.ts
-│  └─ {auth,db,entitlements,guest,share-token,ziwei-types,utils}.ts
+│  └─ {auth,db,entitlements,guest,purchase,share-token,ziwei-types,utils}.ts
 ├─ prisma/schema.prisma              # Postgres + directUrl 분리
 ├─ middleware.ts                     # /mypage 로그인 강제
 ├─ vercel.json · next.config.ts
@@ -168,29 +197,34 @@ datasource db {
 
 ### 7-2. 핵심 엔티티
 
-- **User / Account / Session / VerificationToken** — Supabase Auth와 우리 DB의 user.id가 동일(`auth.upsert`로 동기화). VerificationToken은 미사용(NextAuth 잔재, 추후 정리).
+- **User** — Supabase Auth와 우리 DB의 user.id가 동일(`auth()` upsert로 동기화).
 - **Chart** — `payload String`(iztro 전체 산출물 JSON 캐시) + `iztroVersion` + `shareToken` + `isPremiumUnlocked`
-- **Subscription** — `plan`(FREE/PREMIUM/PRO) + `status` + `tossBillingKey?` + `currentPeriodEnd?`
-- **Payment** — `orderId/paymentKey` unique + `productType` + `productRef`(Chart.id 또는 Subscription.id)
+- **Purchase** ⭐신규 — chart 단건 구매. `userId+chartId` unique, `amount`(기본 1900), `method`(기본 "BANK_TRANSFER"→향후 "TOSS"), `depositorName?`, `status`(PENDING/PAID/CANCELLED), `paidAt?`. 깊은풀이 잠금해제의 단일 근거.
+- **PalaceReading** ⭐신규 — 궁별 상세풀이 캐시. `(chartId, palaceKey, modelVersion, promptVersion)` unique → 모델/프롬프트 버전 바뀌면 자동 무효화. 재방문 0초.
+- **DeepReading** ⭐신규 — 깊은풀이 캐시. `(chartId, section, modelVersion, promptVersion)` unique (`section="all"`).
+- **Subscription** — `plan`(FREE/PREMIUM/PRO) + `status` + `tossBillingKey?` (향후 구독)
+- **Payment** — `orderId/paymentKey` unique + `productType` + `productRef` (향후 PG)
 - **AiConversation** — `chartId` 연결 + `messages String`(JSON) + `tokenUsage`
+- **AiDailyUsage** — 일자별 턴 집계(현재 게이팅 미사용 — 분석용 잔존)
+- **Feedback** — 고객센터 의견(type/message/email)
 - **Compatibility** — `chartA/B` + `score` + `detail String`(JSON)
 
 > 기획서 ERD의 `palaces`/`stars` 마스터 테이블은 제거. iztro가 stateless 함수형 라이브러리라 런타임 산출. Chart.payload 한 컬럼에 캐시.
+> AI 결과 캐시(`PalaceReading`/`DeepReading`)는 **버전 키 설계**라 프롬프트/모델 개선 시 stale 반환 없이 자연 재생성된다.
 
 ---
 
 ## 8. 차별화 기능 4가지 — 구현 디테일
 
-### 8-1. AI 명반 해석 챗봇
+### 8-1. AI 명반 해석 (궁별 상세풀이)
 
 - **파일**: `app/api/ai/chat/route.ts`, `lib/ai/{gateway,prompt-builder,guardrails}.ts`
-- **로직**: Vercel AI SDK v4 `streamText` + Google Gemini
-  - FREE: `gemini-1.5-flash` (가성비, 무료 tier 가능)
-  - PREMIUM: `gemini-2.0-flash`
-  - PRO: `gemini-2.5-pro` (1M 컨텍스트)
-- **시스템 프롬프트**: Chart.payload의 12궁·14주성·사화·신주·오행국을 한국어로 요약 주입
-- **가드레일**: 운명론 단정 금지("~할 가능성이 있다"), 의학/법률/금융 거부, 차별 표현 금지
-- **레이트 리밋**: 계획 — Vercel Runtime Cache 키 `ai:${userId}:${YYYYMMDD}`
+- **로직**: Vercel AI SDK v4 `streamText` + Google Gemini **2.5** (플랜별 분기, `lib/ai/gateway.ts`)
+  - FREE: `gemini-2.5-flash-lite` · PREMIUM: `gemini-2.5-flash` · PRO: `gemini-2.5-pro`
+- **시스템 프롬프트**: Chart.payload의 12궁·14주성·사화·신주·오행국을 한국어로 요약 주입(`buildSystemPrompt`)
+- **응답 캐싱·가속** ⭐: 초기 풀이는 `PalaceReading`에 캐시(버전 키) → 재방문 시 LLM 호출 없이 동일 스트림으로 즉시 반환. 초기 풀이엔 `thinkingConfig.thinkingBudget=0` + `maxTokens`로 첫 토큰(TTFB) 단축. 후속 자유질문은 기본값 유지.
+- **가드레일**: 운명론 단정 금지("~할 가능성이 있다"), 의학/법률/금융 거부, 차별 표현 금지(`lib/ai/guardrails.ts`)
+- **한도 정책**: 로그인 회원은 **무제한**(이전 FREE 5턴/일 게이트는 제거). 비로그인은 401.
 
 ### 8-2. 궁합 분석 (자체 알고리즘)
 
@@ -204,16 +238,37 @@ datasource db {
 
 ### 8-3. 모바일-퍼스트 UX + 공유 카드
 
-- **파일**: `app/layout.tsx`(폰 프레임), `app/api/og/chart/[id]/route.tsx`(OG)
+- **파일**: `app/layout.tsx`(480px 반응형 컬럼), `app/api/og/chart/[id]/route.tsx`(OG)
 - **`@vercel/og`의 `ImageResponse`** — 1200×630 PNG (Node runtime)
 - **OG 라우트**는 `id` OR `shareToken` 양쪽 허용 — 공개 공유 페이지에서도 호출
 - **디자인**: 자색 그라데이션 + 금색 명궁/주성/오행국 + Nanum Myeongjo
 - **카카오 공유**: `lib/share/kakao.ts` + Kakao JS SDK `Kakao.Share.sendDefault({ objectType: 'feed' })`
 
-### 8-4. 대운/유년 인터랙티브 타임라인 (계획)
+### 8-4. 대운 타임라인
 
-- **파일**: `app/chart/[id]/timeline/page.tsx` (라우트만 존재)
-- **계획**: `components/timeline/DecadalTimeline.tsx` — Recharts `LineChart` x축 10년 구간, y축 길/흉성 합산. 점 클릭 → 시트 열려 해당 10년 12궁 + 유년 그리드.
+- **파일**: `app/chart/[id]/timeline/page.tsx` + `components/timeline/DecadalTimeline.tsx`
+- Recharts `LineChart` — x축 10년 대운 구간, y축 길성/흉성·사화 가중 점수, 현재 나이 하이라이트. 데이터는 payload `palaces[].decadal` 직접 추출. (세운 연 단위는 payload에 없어 향후 데이터 확보 시 확장.)
+
+### 8-5. 🔮 깊은 풀이(전체풀이) — 유료 ⭐신규
+
+- **파일**: `lib/ai/prompt-builder.ts`(`buildDeepReadingPrompt`), `app/api/ai/chat/route.ts`(`mode:"deep"` 분기), `app/chart/[id]/deep/{page,client}.tsx`, `components/ziwei/screens/DeepReadingScreen.tsx`
+- **콘텐츠 정의 — 궁별 상세풀이와 절대 중복 금지**:
+  - ① 궁 간 상호작용/시너지(명궁×재백궁 등 "관계"만, 개별 궁 재설명 금지)
+  - ② 대운 시간축 흐름(상세풀이엔 없는 시간 정보, payload `decadal` 주입)
+  - ③ 12궁 관통 인생 테마 + 강점활용·약점보완 종합 전략
+- **출력 4섹션**: `[종합 총평] [궁 상호작용] [대운 흐름] [종합 마무리]` (상세풀이의 `[성향][강점][주의][조언]`과 머리글 분리).
+- **프롬프트에 명시**: "이미 궁별 상세풀이에서 다룬 개별 궁 설명을 반복하지 말고 연결·시간축·종합전략에 집중하라."
+- **캐시**: `DeepReading`(section="all") + 같은 스트림 프로토콜로 즉시 반환. 결제(PAID) 통과자만 생성/조회.
+
+### 8-6. 🔐 3단계 서버 권한
+
+UI 숨김이 아니라 **서버에서 강제**(URL 직접 접근·API 직접 호출 모두 차단). 단일 판정 함수 `lib/purchase.ts`의 `hasPurchased(userId, chartId) = Purchase.status==="PAID"`.
+
+| 층 | 콘텐츠 | 판정 위치 | 규칙 |
+|---|---|---|---|
+| 무료 | 12궁 요약(2~3줄) | `/chart/[id]`(정적) | 누구나 |
+| 로그인 | 궁별 상세풀이 + 그 AI | `palace/[key]/page.tsx` + `/api/ai/chat` | 세션 필수(비회원 401/리다이렉트) |
+| 결제 | 깊은 풀이 + 그 AI | `deep/page.tsx` + `/api/ai/chat`(`mode:"deep"`) | `hasPurchased`(PAID), 미결제 403/리다이렉트 |
 
 ---
 
@@ -268,20 +323,20 @@ datasource db {
 - 비로그인도 명반 생성·저장 가능, 게스트 user에 귀속
 - 같은 브라우저에서 만든 명반은 유지, 가입 후 마이그레이션은 추후
 
-### 11-2. Toss Payments — 계획 (미구현)
+### 11-2. 결제 — 무통장입금 (구현됨) ✅
 
-> 코드상 `@tosspayments/tosspayments-sdk` 패키지만 설치. 라우트(`app/api/payments/*`, `app/api/cron/billing`)와 `/pricing` 페이지는 아직 없음.
+> PG 연동 전 단계로 **수동 계좌이체 + 관리자 입금확인**. 구조는 토스 자동결제로 확장 가능하게 설계(`Purchase.method`).
 
-계획:
-1. `POST /api/payments/init` → DB에 `Payment{status:READY, orderId, amount}`
-2. 클라이언트 위젯: `loadTossPayments(clientKey).widgets(customerKey).requestPayment(...)`
-3. `successUrl=/api/payments/confirm` 콜백 → amount 검증 → Toss confirm 호출 → `status:DONE` + `grantEntitlement()`
-4. 웹훅 `/api/payments/webhook` — 멱등성 키 `paymentKey+status`
-5. 정기결제: 빌링키 발급 → Vercel Cron `0 3 * * *`
+- **신청**: `POST /api/purchase` — `auth()` 필수(회원 전용), chart 소유권 검증 → `Purchase` upsert(`userId+chartId` unique, 항상 `status:PENDING`). **status는 클라이언트가 정할 수 없음**(관리자만 PAID 전환).
+- **UI**: `DepositSheet`(바텀시트) — 계좌(env) 표시 + 입금자명 입력 + "입금 완료했어요" → "입금 확인 후 열려요". 계좌번호 복사 버튼(숫자만 클립보드).
+- **잠금 해제**: 관리자가 입금 확인 후 `Purchase.status=PAID`(현재 수동 DB) → 깊은풀이 서버 게이트 통과.
+- **계좌 env**: `BANK_NAME`/`BANK_ACCOUNT`/`BANK_HOLDER` (서버 전용, 하드코딩 없음).
+- **향후**: `@tosspayments/tosspayments-sdk`(설치됨) + env(`NEXT_PUBLIC_TOSS_CLIENT_KEY`/`TOSS_PAYMENTS_SECRET_KEY`, 준비됨)로 자동결제 전환 시 `successUrl→confirm→PAID` 자동화.
 
-### 11-3. 게이팅 (`lib/entitlements.ts` — 구현됨)
+### 11-3. 권한 단일 출처
 
-플랜별 `aiTurnsPerDay`/`model`/`compatibility`/`maxCharts` 한도 단일 진실원. `getEntitlements(userId)` 호출 시 활성 `Subscription` 조회 → FREE 폴백.
+- **깊은풀이 결제 게이트**: `lib/purchase.ts` `hasPurchased(userId, chartId)` (= Purchase PAID). 서버 3단계 권한의 단일 chokepoint(§8-6).
+- **플랜 한도(`lib/entitlements.ts`)**: `model`/`compatibility`/`maxCharts` 등 플랜별 설정 단일 진실원. `getEntitlements(userId)`가 활성 `Subscription` 조회 → FREE 폴백. (AI 턴 한도 `aiTurnsPerDay`는 정의돼 있으나 현재 게이팅에 미사용 — 로그인 회원 무제한.)
 
 ---
 
@@ -370,7 +425,7 @@ npm run dev
 4. 가입 시트 (Kakao or 이메일) — 선택사항
 5. AI 챗 (`/chart/[id]/ai`): "내 명궁 주성은?" → Gemini 스트리밍 응답
 6. 공유 토큰 발급 → `/share/[token]` OG 이미지 표시
-7. (계획) 프리미엄 → Toss 테스트 결제 → unlock
+7. 깊은풀이 카드(🔒) → 무통장입금 모달 → 입금자명 제출 → `Purchase` PENDING → (관리자 PAID 전환) → `/chart/[id]/deep` 4섹션 깊은풀이
 8. 두 번째 명반 → `/compatibility` → 점수
 
 ### 15-3. 환경 변수 (`.env`)
@@ -393,6 +448,15 @@ GOOGLE_GENERATIVE_AI_API_KEY="..."
 
 # 카카오 공유 (선택)
 NEXT_PUBLIC_KAKAO_JS_KEY="..."
+
+# 무통장입금 계좌 (깊은풀이 결제 안내 — 서버 전용, 하드코딩 금지)
+BANK_NAME="..."
+BANK_ACCOUNT="..."
+BANK_HOLDER="..."
+
+# 토스페이먼츠 (향후 자동결제 — 키 준비됨)
+NEXT_PUBLIC_TOSS_CLIENT_KEY="..."
+TOSS_PAYMENTS_SECRET_KEY="..."
 ```
 
 > **Vercel 환경변수도 동일하게** Settings → Environment Variables에 등록. `NEXT_PUBLIC_*`은 빌드 타임 인라인이라 변경 시 **재배포 필수**.
@@ -402,15 +466,19 @@ NEXT_PUBLIC_KAKAO_JS_KEY="..."
 ## 16. 구현 우선순위 (현재 진행)
 
 1. ✅ 부트스트랩: Next.js 16 + Tailwind v4 + Prisma + 디자인 토큰
-2. ✅ 인증: Supabase Auth + Kakao + 게스트 흐름
-3. ✅ 명반 코어: iztro 래퍼 → `/chart/new` 폼 → `/chart/[id]` 결과 (plate + 12 영역 통합)
-4. ✅ 차별화 1: AI 챗봇 (Gemini, AI Gateway 추상화)
-5. ✅ 차별화 3: 모바일-퍼스트 폰 프레임 + OG 공유 카드
-6. ⏳ 차별화 4: 대운 타임라인 — 라우트만 (Recharts 그래프 미구현)
-7. ✅ 차별화 2: 궁합 알고리즘 → `/compatibility`
-8. ⏳ 수익화: Toss 결제 — 라우트·페이지 미구현
-9. ⏳ SEO·블로그 26편 — sitemap/robots만 구현
-10. ✅ 배포: Vercel + Supabase Postgres (Pooler) + 환경변수
+2. ✅ 인증: Supabase Auth + Kakao + 게스트 흐름 + returnTo(`?next=`)
+3. ✅ 명반 코어: iztro 래퍼 → `/chart/new` 폼(내 명반 불러오기) → `/chart/[id]` 결과
+4. ✅ 차별화 1: AI 궁별 상세풀이 (Gemini 2.5) + **응답 캐싱·가속**
+5. ✅ 차별화 2(신규): **🔮 깊은 풀이** — 콘텐츠 정의/생성·캐시·페이지·중복 금지
+6. ✅ 차별화 3: 궁합 알고리즘 → `/compatibility`
+7. ✅ 차별화 4: 모바일-퍼스트(480px 컬럼) + OG 공유 카드
+8. ✅ 차별화 5: 대운 타임라인 (Recharts 점수 그래프)
+9. ✅ **수익화: 무통장입금 단건 결제** — `Purchase` + 게이트 + 결제 모달 (PG 자동결제는 향후)
+10. ✅ **3단계 서버 권한**: 무료요약 / 로그인 상세풀이 / 결제 깊은풀이
+11. ✅ 고객센터 위젯(의견 보내기) + 차트 한정 노출
+12. ⏳ 관리자 입금확인(PENDING→PAID) 화면 — 현재 수동 DB
+13. ⏳ SEO·블로그 26편 — sitemap/robots만 구현
+14. ✅ 배포: Vercel + Supabase Postgres (Pooler) + 환경변수(BANK_*/TOSS_* 포함)
 
 ---
 
@@ -439,14 +507,14 @@ NEXT_PUBLIC_KAKAO_JS_KEY="..."
 | 관심사 | 자기계발 · MBTI · 타로 · 사주 · 힐링 콘텐츠 |
 | 페인 포인트 | "사주는 너무 뻔해, 새로운 거 없을까?" / "자미두수 들어봤는데 볼 수 있는 사이트가 없어" |
 | 핵심 동기 | 새로운 자아탐색 도구 발견 · SNS 공유용 콘텐츠 확보 |
-| 결제 성향 | 소액(9,900원) 충동 결제 가능 · 카카오페이·토스 선호 |
+| 결제 성향 | 소액(1,900원 깊은풀이) 충동 결제 가능 · 무통장입금/카카오페이 선호 |
 | 앱 사용 패턴 | 모바일 위주 · 인스타·틱톡·유튜브 숏츠 중심 |
 
 **이 페르소나를 선택한 이유**
 
 - 에브리타임·인스타 릴스로 비용 0원에 빠르게 접근 가능하고 공유 카드 바이럴이 자연스럽게 일어남
 - 명반 생성·AI 해석·공유 카드가 이미 완성된 상태라 지금 당장 서비스 가능
-- 9,900원 충동 결제 성향으로 MVP 수익화 검증에 가장 적합
+- 1,900원 소액 충동 결제 성향으로 MVP 수익화 검증에 가장 적합
 
 ---
 
