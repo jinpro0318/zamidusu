@@ -4,6 +4,7 @@
 // 계좌정보(서버 env에서 받은 값)를 표시하고 입금자명을 받아 Purchase(PENDING)를 생성한다.
 // 입금확인(PAID)은 관리자가 수동으로 처리하므로 여기선 "입금 확인 후 열려요"까지 안내한다.
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 
 export interface BankInfo {
@@ -15,17 +16,18 @@ export interface BankInfo {
 export function DepositSheet({
   open,
   onClose,
-  chartId,
   bank,
 }: {
   open: boolean;
   onClose: () => void;
-  chartId: string;
+  /** 정식 결제 전환 시 사용(현재 테스트 단계라 미사용). */
+  chartId?: string;
   bank: BankInfo;
 }) {
+  const router = useRouter();
   const [depositorName, setDepositorName] = useState('');
-  const [sending, setSending] = useState(false);
-  const [done, setDone] = useState(false);
+  const [sending] = useState(false);
+  const [done] = useState(false); // 정식 전환 시 "입금 확인 후 열려요" 완료 화면 복구용
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -47,33 +49,19 @@ export function DepositSheet({
     onClose();
     // 닫힌 뒤 상태 초기화(애니메이션 여유)
     setTimeout(() => {
-      setDone(false);
       setDepositorName('');
       setErr(null);
     }, 200);
   };
 
-  const submit = async () => {
+  const submit = () => {
     if (depositorName.trim().length < 1) {
       setErr('입금자명을 입력해 주세요.');
       return;
     }
-    setSending(true);
+    // 테스트 단계: 실제 결제 처리/잠금해제 없이 안내 페이지로 이동.
     setErr(null);
-    try {
-      const res = await fetch('/api/purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chartId, depositorName: depositorName.trim() }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? '신청에 실패했어요. 잠시 후 다시 시도해 주세요.');
-      setDone(true);
-    } catch (e: any) {
-      setErr(e?.message ?? '신청에 실패했어요.');
-    } finally {
-      setSending(false);
-    }
+    router.push('/pending');
   };
 
   const hasBank = !!(bank.name && bank.account);

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getGuestUserId } from "@/lib/guest";
 import { CompatibilityResult } from "@/components/compatibility/CompatibilityResult";
+import { CompatibilityReading } from "@/components/compatibility/CompatibilityReading";
 import type { CompatibilityScore } from "@/lib/iztro/compatibility";
 import { Z, SERIF, SANS } from "@/theme/tokens";
 
@@ -113,6 +114,9 @@ export default async function CompatibilityResultPage({
           nameA={male.subjectName?.trim() || "남자"}
           nameB={female.subjectName?.trim() || "여자"}
         />
+
+        {/* 하단: AI 관계 해석 (두 사람 관계 전용) */}
+        <CompatibilityReading compatId={rec.id} />
 
         <p style={{ fontFamily: SANS, fontSize: 11, color: Z.ink3, lineHeight: 1.6, textAlign: "center" }}>
           ※ 점수는 자미두수 12궁·사화·오행국을 가중 합산한 추정치입니다.

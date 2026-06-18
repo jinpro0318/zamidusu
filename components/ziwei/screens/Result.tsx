@@ -44,19 +44,12 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, i
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [depositOpen, setDepositOpen] = useState(false);
 
-  // 깊은풀이 진입 경로(현재 명반).
-  const deepHref = chartId ? `/chart/${chartId}/deep` : null;
-
-  // 프리미엄 카드 탭 분기:
-  //  - 깊은풀이: 비회원→로그인 게이트, 회원·미결제→무통장입금 시트, 결제완료→깊은풀이 페이지.
-  //  - 그 외: 기존 activate(로그인 분기).
+  // 프리미엄 카드 탭 분기 (테스트/준비중 단계):
+  //  - 모든 프리미엄 카드는 실제 콘텐츠로 가지 않고 무통장입금 모달을 띄운다.
+  //  - 비회원은 먼저 로그인 게이트.
   const handlePremiumSelect = (href: string) => {
-    if (deepHref && href === deepHref) {
-      if (!loggedIn) return openJoinGate(href);
-      if (!isPaid) return setDepositOpen(true);
-      return router.push(href);
-    }
-    return activate(href);
+    if (!loggedIn) return openJoinGate(href);
+    return setDepositOpen(true);
   };
 
   // 프리미엄 진입 게이트 → 하단 바텀시트(LoginGate)로 "가입하면 열려요" + 로그인/가입.
@@ -148,6 +141,24 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, i
             </svg>
             공유
           </button>
+          {/* 마이페이지 — 로그인 시에만, 저장 버튼과 동일 톤 */}
+          {loggedIn && (
+            <button
+              onClick={() => router.push('/mypage')}
+              aria-label="마이페이지"
+              style={{
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.08)',
+                borderRadius: 18, padding: '7px 11px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle cx="12" cy="8" r="3.4" stroke="#fff" strokeWidth="2" />
+                <path d="M5 20a7 7 0 0 1 14 0" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* 명반 차트 영역 */}

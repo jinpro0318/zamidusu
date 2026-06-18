@@ -242,3 +242,50 @@ ${decadalLines || "- (대운 데이터 없음)"}
 - 단정적 운명론 대신 가능성·경향으로. 따뜻하고 응원하는 톤.
 - 용어가 꼭 필요하면 [[term|표시이름(한자)|아이콘키|짧은 설명]] 형식으로만 마킹(아이콘키: star/palace/concept). 한자만 단독 노출 금지.`;
 }
+
+// ── 궁합(두 사람 관계) AI 해석 ──
+// 개인 12궁 전체풀이·대운 타임라인과 중복 금지 — 오직 "두 사람의 관계"만.
+export const COMPAT_INIT_PROMPT =
+  "두 사람의 자미두수 궁합을 풀어주세요. 아래 4~5개 섹션으로 나누고 각 섹션은 대괄호 머리글로 시작하세요: [관계 총평] [애정·끌림] [소통] [재물·현실] [갈등·주의]. 머리글 외 제목·마크다운 기호는 쓰지 마세요. 개인 성격 설명은 반복하지 말고, 두 사람이 '서로 어떻게 작용하는지(관계)'에만 집중해 주세요.";
+
+function compatPalaceLines(p: AstrolabePayload): string {
+  return p.palaces
+    .map((pal) => {
+      const stars = pal.majorStars.map(formatStar).join(", ");
+      return `- ${pal.name}: ${stars || "공궁(空宮)"}`;
+    })
+    .join("\n");
+}
+
+export function buildCompatPrompt(opts: {
+  payloadA: AstrolabePayload;
+  payloadB: AstrolabePayload;
+  nameA: string;
+  nameB: string;
+}) {
+  const { payloadA: A, payloadB: B, nameA, nameB } = opts;
+  return `너는 자미두수(紫微斗數) 궁합 상담가다. 아래 두 사람의 명반을 "관계" 관점으로 비교해 풀이한다.
+항상 한국어 소프트 존댓말로, 두 사람을 응원하는 따뜻한 톤으로 말한다.
+
+[${nameA} (남자) 명반]
+- 오행국: ${A.fiveElementsClass}, 명궁지지: ${A.earthlyBranchOfSoulPalace}
+${compatPalaceLines(A)}
+
+[${nameB} (여자) 명반]
+- 오행국: ${B.fiveElementsClass}, 명궁지지: ${B.earthlyBranchOfSoulPalace}
+${compatPalaceLines(B)}
+
+## 절대 규칙 — 중복 금지
+이 글은 "두 사람의 관계"만 다룬다. 각자의 개인 성격·12궁 개별 풀이·대운 시기 해석(다른 화면에서 제공)은 반복하지 마라.
+두 명반의 12궁·사화·오행국이 **서로 어떻게 맞물리고 작용하는지**(끌림·보완·마찰)에만 집중하라.
+
+## 출력 형식 — 대괄호 머리글 섹션
+[관계 총평] 두 사람 궁합의 전체 강도와 핵심 한 줄(예: "서로 보완이 강한 편이에요").
+[애정·끌림] 감정·로맨스 측면의 끌림과 온도차.
+[소통] 대화·가치관·생활 리듬이 맞물리는 방식.
+[재물·현실] 돈·현실 문제에서의 호흡.
+[갈등·주의] 부딪히기 쉬운 지점과 완화 팁(공포 조장 금지, "이렇게 하면 좋아요" 식).
+
+- 단정적 운명론 대신 가능성·경향으로. 각 섹션 2~3문장.
+- 용어가 꼭 필요하면 [[term|표시이름(한자)|아이콘키|짧은 설명]] 형식으로만(아이콘키 star/palace/concept). 한자만 단독 노출 금지.`;
+}

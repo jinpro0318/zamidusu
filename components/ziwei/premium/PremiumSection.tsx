@@ -95,12 +95,18 @@ export function PremiumSection({
                 borderRadius: 16, padding: '13px 13px 14px', minHeight: 100,
               }}
             >
-              {/* 은은한 잠금 표시 */}
-              {locked && (
-                <span aria-hidden style={{ position: 'absolute', top: 11, right: 12, fontSize: 11, opacity: 0.55 }}>🔒</span>
-              )}
+              {/* 준비중 배지 — 모든 카드(아직 정식 오픈 전) */}
+              <span
+                style={{
+                  position: 'absolute', top: 10, right: 10,
+                  fontFamily: SANS, fontSize: 10, fontWeight: 700, color: Z.p600,
+                  background: Z.p50, border: `1px solid ${Z.p100}`, borderRadius: 999, padding: '2px 7px',
+                }}
+              >
+                준비중
+              </span>
               <span aria-hidden style={{ fontSize: 20 }}>{f.icon}</span>
-              <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3, paddingRight: 14 }}>{f.title}</span>
+              <span style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 700, color: Z.ink, lineHeight: 1.3, paddingRight: 48 }}>{f.title}</span>
               <span style={{ fontFamily: SANS, fontSize: 11.5, color: Z.ink2, lineHeight: 1.45 }}>{f.desc}</span>
               {/* 하단 위계: [보조문구(유료·미결제 시)] → [보러 가기 →] */}
               <span style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
