@@ -62,15 +62,20 @@ interface PickerCfg {
   set: (v: string) => void;
 }
 
-export function CompatibilityForm({ charts }: { charts: ChartOption[] }) {
+export function CompatibilityForm({ charts, fromChartId }: { charts: ChartOption[]; fromChartId?: string }) {
   const router = useRouter();
   const [male, setMale] = useState<Person>(emptyPerson);
   const [female, setFemale] = useState<Person>(emptyPerson);
   const [loading, setLoading] = useState(false);
   const [picker, setPicker] = useState<PickerCfg | null>(null);
 
-  // ← HOME: 남자 저장 명반이 선택돼 있으면 그 명반으로, 아니면 마이페이지로.
-  const homeHref = male.mode === "saved" && male.savedId ? `/chart/${male.savedId}` : "/mypage";
+  // ← HOME: 진입 출처(from) 명반이 있으면 거기로 복귀(예: 내 명반에서 궁합으로 들어온 경우),
+  // 없으면 남자 저장 명반 → 마이페이지 순으로 폴백.
+  const homeHref = fromChartId
+    ? `/chart/${fromChartId}`
+    : male.mode === "saved" && male.savedId
+      ? `/chart/${male.savedId}`
+      : "/mypage";
 
   // 한 사람 입력 → chartId 확정(저장: 그대로 / 직접: 명반 생성).
   async function resolveChartId(p: Person, gender: "MALE" | "FEMALE", who: string): Promise<string> {
