@@ -8,6 +8,7 @@ import { PrimaryBtn, GoogleBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput } from '@/components/ziwei/common';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { authCallbackUrl, resolveLoginNext } from '@/lib/site-url';
+import { detectInAppBrowser, openInExternalBrowser, INAPP_GUIDE_MESSAGE } from '@/lib/inapp-browser';
 import type { Nav } from '@/lib/ziwei-types';
 import { toast } from 'sonner';
 
@@ -52,6 +53,15 @@ export function Login({ nav, callbackUrl }: { nav: Nav; callbackUrl?: string }) 
   }
 
   async function onGoogle() {
+    // 인앱 브라우저(카카오톡 등)에서는 구글 OAuth가 차단된다(disallowed_useragent).
+    // → 외부 브라우저로 로그인 페이지를 열어 거기서 로그인하도록 유도.
+    if (detectInAppBrowser()) {
+      const signInUrl = `${window.location.origin}/sign-in?next=${encodeURIComponent(resolveLoginNext(callbackUrl))}`;
+      if (!openInExternalBrowser(signInUrl)) {
+        toast.error(INAPP_GUIDE_MESSAGE);
+      }
+      return;
+    }
     setLoading('google');
     try {
       const supabase = createSupabaseBrowserClient();
