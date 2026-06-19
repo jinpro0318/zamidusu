@@ -65,3 +65,46 @@ export function annotatePalace(cn: string, withMeaning = false): string {
   if (!g) return cn;
   return withMeaning ? `${cn}(${g.ko} — ${g.meaning})` : `${cn}(${g.ko})`;
 }
+
+// ── AI 풀이 본문의 한자 용어 자동 감지(탭 시 한 줄 뜻풀이 팝오버) ──
+// 프롬프트가 흐르는 상담 글로 바뀌며 [[..]] 마킹을 더는 내보내지 않으므로,
+// 본문에 인라인으로 등장하는 한자(궁·별·개념)를 클라이언트에서 사전으로 매칭해
+// 탭 가능한 용어로 만든다. (프롬프트/캐시 변경 불필요)
+
+// 12궁·별 외의 자미두수 '개념어' 한자 → 한글음 + 한 줄 뜻
+export const CONCEPT_GLOSS: Record<string, { ko: string; meaning: string }> = {
+  空宮: { ko: '공궁', meaning: '주된 별이 없어 주변 기운을 잘 받아들이는 유연한 자리예요.' },
+  四化: { ko: '사화', meaning: '별의 기운을 바꾸는 네 가지 변화(록·권·과·기)를 말해요.' },
+  化祿: { ko: '화록', meaning: '재물·인연이 잘 풀리는 복의 기운이에요. (사화 중 록)' },
+  化權: { ko: '화권', meaning: '권한·추진력이 강해지는 기운이에요. (사화 중 권)' },
+  化科: { ko: '화과', meaning: '명예·평판·시험운을 밝혀주는 기운이에요. (사화 중 과)' },
+  化忌: { ko: '화기', meaning: '집착·막힘이 생길 수 있어 살피는 기운이에요. (사화 중 기)' },
+  身宮: { ko: '신궁', meaning: '후천적으로 힘이 실리는 또 하나의 인생 중심이에요.' },
+};
+
+export type GlossTermType = 'star' | 'palace' | 'concept';
+
+// 한자 → { label '한글(한자)', desc 한 줄 뜻, type }. 궁·개념·별을 한곳에 통합.
+export const HANJA_TERMS: Record<string, { label: string; desc: string; type: GlossTermType }> = (() => {
+  const m: Record<string, { label: string; desc: string; type: GlossTermType }> = {};
+  for (const [cn, g] of Object.entries(PALACE_GLOSS)) {
+    m[cn] = { label: `${g.ko}(${cn})`, desc: g.meaning, type: 'palace' };
+  }
+  for (const [cn, g] of Object.entries(CONCEPT_GLOSS)) {
+    m[cn] = { label: `${g.ko}(${cn})`, desc: g.meaning, type: 'concept' };
+  }
+  for (const [ko, v] of Object.entries(STAR_MEANINGS)) {
+    if (v.hanja && !m[v.hanja]) m[v.hanja] = { label: `${ko}(${v.hanja})`, desc: v.desc, type: 'star' };
+  }
+  return m;
+})();
+
+// 본문에서 알려진 한자 용어를 찾는 정규식 소스(긴 한자 우선 → 命宮이 宮보다 먼저 매칭).
+export const HANJA_TERM_SOURCE: string = Object.keys(HANJA_TERMS)
+  .sort((a, b) => b.length - a.length)
+  .join('|');
+
+/** 텍스트에 사전에 등록된 한자 용어가 하나라도 있으면 true. */
+export function hasHanjaTerms(text: string): boolean {
+  return new RegExp(HANJA_TERM_SOURCE).test(text);
+}

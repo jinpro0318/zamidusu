@@ -21,6 +21,7 @@ import {
 import { createPortal } from 'react-dom';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { STAR_MEANINGS } from '@/data/starMeanings';
+import { HANJA_TERMS, HANJA_TERM_SOURCE } from '@/lib/glossary';
 
 type IconKey = 'star' | 'palace' | 'concept';
 const ICON_KEYS: IconKey[] = ['star', 'palace', 'concept'];
@@ -153,8 +154,52 @@ function renderBold(text: string, keyBase: string): ReactNode[] {
   );
 }
 
+// 마킹 밖 일반 텍스트에서 사전에 등록된 한자 용어(궁·별·개념)를 찾아 탭 가능한 버튼으로 감싼다.
+// → 프롬프트가 [[..]] 마킹을 안 내보내도, 본문에 인라인으로 등장한 한자(예: 命宮·空宮·太陽)에
+//   탭하면 한 줄 뜻풀이 팝오버가 뜬다. (마킹 [[..]]과 동일한 버튼/팝오버 UI 재사용)
+function renderTextWithTerms(
+  text: string,
+  onTap: (t: Term, el: HTMLElement) => void,
+  keyBase: string,
+): ReactNode[] {
+  if (!HANJA_TERM_SOURCE) return renderBold(text, keyBase);
+  const out: ReactNode[] = [];
+  const re = new RegExp(HANJA_TERM_SOURCE, 'g');
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(...renderBold(text.slice(last, m.index), `${keyBase}-bt${k}`));
+    const hanja = m[0];
+    const info = HANJA_TERMS[hanja];
+    const t: Term = { term: hanja, label: info.label, icon: info.type, desc: info.desc };
+    const ic = ICONS[t.icon];
+    out.push(
+      <button
+        key={`${keyBase}-ht${k}`}
+        type="button"
+        aria-haspopup="dialog"
+        onClick={(e) => onTap(t, e.currentTarget)}
+        style={{
+          border: 'none', background: ic.bg, cursor: 'pointer',
+          borderRadius: 6, padding: '0 4px', margin: 0,
+          font: 'inherit', color: ic.fg, fontWeight: 700,
+          borderBottom: `1.5px dotted ${ic.bd}`,
+        }}
+      >
+        {hanja}
+      </button>,
+    );
+    last = m.index + m[0].length;
+    k++;
+  }
+  if (last < text.length) out.push(...renderBold(text.slice(last), `${keyBase}-be`));
+  return out;
+}
+
 // 한 줄을 마킹 기준으로 쪼개 버튼/일반텍스트 노드로 변환.
 // 버튼 클릭 시 자기 DOM 요소를 anchor 로 함께 넘겨 팝오버 위치 기준으로 쓴다.
+// 마킹 밖 텍스트는 renderTextWithTerms 로 보내 한자 용어 자동 감지까지 적용한다.
 function renderInline(
   text: string,
   onTap: (t: Term, el: HTMLElement) => void,
@@ -167,7 +212,7 @@ function renderInline(
   let m: RegExpExecArray | null;
   let k = 0;
   while ((m = re.exec(text))) {
-    if (m.index > last) out.push(...renderBold(text.slice(last, m.index), `${keyBase}-t${k}`));
+    if (m.index > last) out.push(...renderTextWithTerms(text.slice(last, m.index), onTap, `${keyBase}-t${k}`));
     const parsed = parseFields(m[1]);
     const t: Term = { term: parsed.term, label: parsed.label, icon: parsed.icon, desc: resolve(parsed) };
     const ic = ICONS[t.icon];
@@ -190,7 +235,7 @@ function renderInline(
     last = m.index + m[0].length;
     k++;
   }
-  if (last < text.length) out.push(...renderBold(text.slice(last), `${keyBase}-e`));
+  if (last < text.length) out.push(...renderTextWithTerms(text.slice(last), onTap, `${keyBase}-e`));
   return out;
 }
 

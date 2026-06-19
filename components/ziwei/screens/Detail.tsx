@@ -9,6 +9,7 @@ import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
 import { Toast } from '@/components/ziwei/sheets/Toast';
 import { useToast } from '@/hooks/useToast';
 import { AiText, buildGlossary, TermLegend } from '@/components/ai/AiText';
+import { hasHanjaTerms } from '@/lib/glossary';
 import { UncertainTimeBadge } from '@/components/ziwei/UncertainTimeBadge';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
@@ -256,8 +257,8 @@ export function Detail({
             )}
           </div>
 
-          {/* 상단 안내 범례 — 용어 마킹이 있을 때만(대화형 풀이엔 마킹이 없어 숨김) */}
-          {hasAnswer && Object.keys(glossary).length > 0 && <TermLegend />}
+          {/* 상단 안내 범례 — 마킹 또는 본문에 한자 용어(궁·별·개념)가 있으면 표시 */}
+          {hasAnswer && (Object.keys(glossary).length > 0 || hasHanjaTerms(cleanMd(mainAnswer))) && <TermLegend />}
 
           {/* 성공: 섹션 카드 (마커 파싱 실패 시 통짜 폴백) */}
           {hasAnswer && sections && sections.map((sec, i) => (
