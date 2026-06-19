@@ -25,13 +25,16 @@ export async function POST(req: Request) {
     return new Response("요청이 올바르지 않아요.", { status: 400 });
   }
 
-  const rec = await db.compatibility.findFirst({
-    where: { id: compatId, ownerId: userId },
-    include: { chartA: true, chartB: true },
-  });
+  // 궁합 레코드 조회와 구독(entitlements) 조회는 독립 → 병렬 실행으로 캐시 히트 경로 단축.
+  const [rec, ent] = await Promise.all([
+    db.compatibility.findFirst({
+      where: { id: compatId, ownerId: userId },
+      include: { chartA: true, chartB: true },
+    }),
+    getEntitlements(userId),
+  ]);
   if (!rec) return new Response("Not found", { status: 404 });
 
-  const ent = await getEntitlements(userId);
   const modelVersion = modelIdFor(ent.plan);
   const section = `compat:${rec.chartBId}`;
   const isInitial = Array.isArray(messages) && messages.length === 1;

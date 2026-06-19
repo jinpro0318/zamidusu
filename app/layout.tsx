@@ -1,17 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Nanum_Myeongjo } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+// 한글 명조체 — self-host.
+// 기존엔 next/font/google이 빌드 시 Nanum Myeongjo subset 청크(276개)를 fonts.gstatic.com에서
+// 받아 self-host했는데, 청크가 많아 간헐적 타임아웃으로 빌드가 깨졌다(외부 fetch 의존).
+// 그 산출물(@font-face + woff2)을 그대로 public/fonts/myeongjo/ + 이 CSS로 옮겨 빌드 시
+// 외부 fetch를 0으로 만든다. 런타임은 동일: preload 없음(<link rel=preload> 미생성),
+// display:swap, unicode-range 서브셋이라 보이는 글자에 해당하는 청크만 지연 로드된다.
+// 변수 --font-myeongjo 는 myeongjo.css의 :root에서 정의(기존 next/font className과 동일 값).
+import "./fonts/myeongjo.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SupportWidget } from "@/components/support/SupportWidget";
 import { FrameBackground } from "@/components/layout/FrameBackground";
-
-const myeongjo = Nanum_Myeongjo({
-  subsets: ["latin"],
-  weight: ["400", "700", "800"],
-  variable: "--font-myeongjo",
-  display: "swap",
-});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className={myeongjo.variable}>
+    <html lang="ko">
       <body className="antialiased">
         {/*
           반응형 풀-블리드 레이아웃 (폰 목업 프레임 제거).

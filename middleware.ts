@@ -33,11 +33,13 @@ export async function middleware(req: NextRequest) {
       },
     });
 
-    // 세션 자동 갱신 트리거 (필요 시 refresh token으로 access token 재발급).
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    hasUser = !!user;
+    // 세션 확인 + 자동 갱신.
+    // getClaims()는 내부적으로 getSession()을 거쳐 만료 임박 시 refresh token으로
+    // access token을 재발급(setAll로 쿠키 갱신)하므로 자동로그인 유지는 동일하다.
+    // 차이점: JWT Signing Keys(비대칭)가 켜져 있으면 토큰 검증을 네트워크 왕복 없이
+    // 로컬(JWKS)에서 수행 → 매 네비게이션의 인증 지연이 사라진다.
+    const { data } = await supabase.auth.getClaims();
+    hasUser = !!data?.claims;
   }
 
   const { pathname } = req.nextUrl;
@@ -52,8 +54,11 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // 정적 자원을 제외한 모든 경로에서 실행 → 어느 페이지를 방문하든 세션이 갱신됨.
+  // 정적 자원과 /api를 제외한 모든 경로에서 실행.
+  // - 페이지 네비게이션은 세션을 갱신(자동로그인 유지).
+  // - /api는 각 라우트 핸들러가 자체적으로 auth()를 호출하므로 미들웨어 인증을
+  //   중복으로 태울 필요가 없다 → API 호출(특히 AI 스트리밍)의 앞단 지연 제거.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

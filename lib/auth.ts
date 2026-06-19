@@ -18,7 +18,32 @@ export interface AuthSession {
   };
 }
 
+// 핫 패스(모든 페이지·API). getClaims()는 JWT를 로컬 검증한다.
+// - Supabase JWT Signing Keys(비대칭)가 켜져 있으면 네트워크 왕복 없이 JWKS로 검증 → 매우 빠름.
+// - 켜져 있지 않으면 내부적으로 getUser()로 폴백(동작은 동일, 속도만 차이).
+// DB user 동기화(upsert)는 여기서 하지 않는다 → 로그인 시 ensureUser()가 1회 수행.
 export async function auth(): Promise<AuthSession | null> {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = data?.claims as Record<string, any> | undefined;
+  if (error || !claims?.sub || !claims?.email) return null;
+
+  const meta = (claims.user_metadata ?? {}) as Record<string, any>;
+  return {
+    user: {
+      id: claims.sub as string,
+      email: claims.email as string,
+      name: meta.name ?? meta.full_name ?? null,
+      image: meta.avatar_url ?? null,
+    },
+  };
+}
+
+// 로그인 완료 시점(OAuth 콜백 등)에 1회만 호출 — Supabase user를 Prisma User에 동기화.
+// 매 요청마다 하던 upsert를 이 지점으로 옮겨 핫 패스에서 DB 쓰기를 제거한다.
+export async function ensureUser(): Promise<AuthSession | null> {
   const supabase = await createSupabaseServerClient();
   if (!supabase) return null;
 

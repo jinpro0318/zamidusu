@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { auth } from "@/lib/auth";
+import { ensureUser } from "@/lib/auth";
 import { adoptGuestData } from "@/lib/guest";
 import { sanitizeNextPath } from "@/lib/site-url";
 
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
   // 게스트로 만든 명반·대화를 방금 로그인한 계정으로 인계.
   // 인계 실패가 로그인 자체를 막아서는 안 되므로 에러는 로그만 남긴다.
   try {
-    const session = await auth(); // Prisma User upsert 포함
+    const session = await ensureUser(); // 로그인 시 Prisma User upsert 1회
     if (session?.user) await adoptGuestData(session.user.id);
   } catch (err) {
     console.error("[GET /auth/callback] 게스트 데이터 인계 실패", err);

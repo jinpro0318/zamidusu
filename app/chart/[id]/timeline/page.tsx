@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { DecadalTimeline } from "@/components/timeline/DecadalTimeline";
+import { DecadalTimelineLazy } from "@/components/timeline/DecadalTimelineLazy";
 import { TimelineAnalysis } from "@/components/timeline/TimelineAnalysis";
 import { extractDecadals, currentDecadalAge } from "@/lib/iztro/horoscope";
 import { ChevronLeft } from "lucide-react";
@@ -52,7 +52,7 @@ export default async function TimelinePage({ params }: { params: Promise<{ id: s
       </div>
 
       <div className="mt-6 sm:mt-8">
-        <DecadalTimeline decadals={decadals} currentAge={age} />
+        <DecadalTimelineLazy decadals={decadals} currentAge={age} />
       </div>
 
       <p className="mt-8 text-[11px] leading-relaxed" style={{ color: Z.ink3 }}>

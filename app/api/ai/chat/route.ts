@@ -46,7 +46,11 @@ export async function POST(req: Request) {
     }
   }
 
-  const chart = await db.chart.findFirst({ where: { id: chartId, userId } });
+  // chart 조회와 구독(entitlements) 조회는 서로 독립 → 병렬 실행으로 캐시 히트 경로를 단축.
+  const [chart, ent] = await Promise.all([
+    db.chart.findFirst({ where: { id: chartId, userId } }),
+    getEntitlements(userId),
+  ]);
   if (!chart) return new Response("Not found", { status: 404 });
 
   // 테스트 기간: 결제 게이트 없이 로그인 회원이면 모두 이용(정식 전환 시 isDeep+hasPurchased 게이트 복구).
@@ -54,7 +58,6 @@ export async function POST(req: Request) {
   const isTimeline = mode === "timeline";
   const isMonthly = mode === "monthly";
 
-  const ent = await getEntitlements(userId);
   const modelVersion = modelIdFor(ent.plan);
 
   // 월간 운세는 달마다 새로 — section을 "monthly-YYYY-MM"으로 키잉.
