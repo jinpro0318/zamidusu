@@ -28,29 +28,35 @@ export function SiteFooter() {
     <footer
       style={{
         position: 'relative',
+        zIndex: 1,
         fontFamily: SANS,
-        padding: '22px 26px calc(28px + env(safe-area-inset-bottom))',
+        background: 'rgba(8, 5, 20, 0.72)',
+        padding: '24px 26px calc(28px + env(safe-area-inset-bottom))',
         borderTop: '1px solid rgba(255,255,255,0.08)',
       }}
     >
       {/* 고객센터 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>고객센터</span>
-        <button
-          type="button"
-          onClick={openSupport}
-          style={{
-            fontFamily: SANS, fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.82)',
-            border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.06)',
-            borderRadius: 16, padding: '5px 11px', cursor: 'pointer',
-          }}
-        >
-          1:1 문의하기
-        </button>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
+        고객센터
       </div>
-      <p style={{ fontSize: 11.5, color: muted, lineHeight: 1.6, margin: '0 0 16px' }}>
+      <p style={{ fontSize: 11.5, color: muted, lineHeight: 1.6, margin: '0 0 4px' }}>
         운영시간 {COMPANY.hours}
       </p>
+      <p style={{ fontSize: 11.5, color: muted, lineHeight: 1.6, margin: '0 0 12px' }}>
+        전화 상담은 제공하지 않습니다. 1:1 문의 게시판을 이용해주세요.
+      </p>
+      <button
+        type="button"
+        onClick={openSupport}
+        style={{
+          display: 'inline-block',
+          fontFamily: SANS, fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+          border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)',
+          borderRadius: 10, padding: '8px 16px', cursor: 'pointer', marginBottom: 18,
+        }}
+      >
+        1:1 문의하기
+      </button>
 
       {/* 사업자 정보 */}
       <div style={{ fontSize: 11.5, color: muted, lineHeight: 1.75 }}>
