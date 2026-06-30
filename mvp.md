@@ -75,7 +75,7 @@
 | 궁합 분석(유료) | `/compatibility` | 유료 | 두 명반 비교 점수 + AI 관계 풀이 |
 | 공유 카드 | `/share/[token]` | 공개 | OG 이미지(1200×630) |
 
-> **회원가입 없는 게스트 경험**: 로그인/회원가입을 제거하고 `zmds_guest` 쿠키 신원만 사용한다. 명반은 작성 시 **개인정보 수집·이용 동의(필수)** 체크 후 생성된다. **결제는 현재 보류** — 유료 콘텐츠 진입 시 "준비 중" 안내만 노출하며, 추후 **무통장입금/크레딧 충전**(비밀번호 없는 게스트 신원 + 어댑터 구조)으로 붙인다.
+> **회원가입 없는 게스트 경험**: 로그인/회원가입을 제거하고 `zmds_guest` 쿠키 신원만 사용한다. 명반은 작성 시 **개인정보 수집·이용 동의(필수)** 체크 후 생성된다. **결제는 토스페이먼츠 결제위젯으로 연동 완료** — 유료 콘텐츠 진입 시 결제 페이지(`/chart/[id]/pay`)에서 결제 후 서버 승인(`/api/purchase/confirm`)으로 해당 명반을 잠금해제한다. 결제 신원은 게스트 쿠키 + 주문번호로 매칭.
 
 ---
 
@@ -89,7 +89,7 @@
 | 궁별 핵심 포인트(AI·`BRIEF_STYLE`) | 0원 | 누구나(게스트) — 읽기 전용, 심화 질문 칩은 유료 안내 |
 | 프리미엄 풀이(전체풀이·타임라인·월간·궁합) | 추후 책정 | 유료 — chart 1개 영구 잠금해제(심화 상담) |
 
-**결제(보류):** 현재는 유료 카드 진입 시 "준비 중" 안내만 노출. 추후 **무통장입금 + 관리자 입금확인** 또는 **크레딧 충전**으로 붙이며, `Purchase`/`Subscription` 모델과 어댑터 구조(`lib/purchase.ts`/`lib/entitlements.ts`)를 그대로 활용한다. 회원가입이 없으므로 결제 신원은 게스트 쿠키 + (입금자명/주문번호) 기반으로 매칭.
+**결제(토스페이먼츠):** 유료 카드 진입 시 토스 결제위젯(`@tosspayments/tosspayments-sdk` v2) 결제 페이지(`/chart/[id]/pay`)로 이동 → 결제 완료 시 서버가 `/api/purchase/confirm`에서 secretKey로 승인하고 `Purchase`를 `PAID`로 기록한다. 접근 판정은 `lib/purchase.ts`(`hasPurchased`)·`lib/entitlements.ts` 어댑터를 그대로 활용. 회원가입이 없으므로 결제 신원은 게스트 쿠키 + 주문번호(orderId) 기반으로 매칭.
 
 ---
 
@@ -107,7 +107,7 @@
 │  AI: AI SDK v4 + @ai-sdk/google   │  Gemini 2.5 (플랜별)      │
 │  AI 톤: CONSULT_STYLE 대화형      │  star-names.ts 단일 소스  │
 │  AI 캐싱: PalaceReading/DeepReading│ 버전 키 + thinking-off   │
-│  결제: 무통장입금 + Purchase 모델 │  @tosspayments(향후)      │
+│  결제: 토스 결제위젯 + Purchase   │  @tosspayments-sdk v2     │
 │  공유 카드: @vercel/og            │  ImageResponse 1200×630   │
 │  타임라인: Recharts (라이트 테마) │  대운 점수 그래프         │
 │  배포: Vercel + Supabase          │                           │
@@ -211,11 +211,11 @@ UI 숨김이 아닌 **서버 강제**. 단일 chokepoint `lib/purchase.ts` `hasP
 
 ---
 
-## 11. 게스트 신원 · 결제(보류)
+## 11. 게스트 신원 · 결제(토스페이먼츠)
 - **회원가입 없음**: 로그인/회원가입/마이페이지를 제거하고 **게스트 쿠키 신원만** 사용. 명반·풀이·구매가 모두 `zmds_guest`(httpOnly) 쿠키에 귀속
 - **게스트**(`lib/guest.ts`): 명반 생성 시 쿠키 발급·User(`guest_*`) 생성. 비밀번호·이메일 없이 재방문 시 자기 명반 열람
 - **개인정보 동의**: `/chart/new`에서 생년월일·시간·성별 수집·이용 동의(필수) 체크 후에만 생성
-- **결제(보류)**: 유료 콘텐츠는 현재 "준비 중" 안내. 추후 무통장입금/크레딧으로 전환하며 `Purchase`/`Subscription` 모델·`lib/purchase.ts`/`lib/entitlements.ts` 어댑터를 재사용
+- **결제(토스페이먼츠)**: 유료 콘텐츠는 토스 결제위젯(`/chart/[id]/pay`)으로 결제 → `/api/purchase/confirm` 승인 성공 시 `Purchase`를 `PAID`로 기록. `lib/purchase.ts`(`hasPurchased`)·`lib/entitlements.ts`로 접근 판정. 테스트 키로 결제창 노출 중(실키 발급 시 env 교체만)
 
 ---
 
@@ -255,7 +255,7 @@ npm run dev
 
 **골든 패스:** 랜딩 → `/chart/new`(양력 1990-05-20 07:00 辰時 남) → `/chart/[id]` 결과 → 궁별 상세풀이(한자 근거→대화형 풀이) → 추천 칩으로 이어 묻기 → 12궁 전체 풀이 → 타임라인/월간 → 공유 토큰 → 궁합.
 
-**주요 env**: `DATABASE_URL`/`DIRECT_URL`, `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `NEXT_PUBLIC_KAKAO_JS_KEY`, `BANK_NAME`/`BANK_ACCOUNT`/`BANK_HOLDER`, `NEXT_PUBLIC_TOSS_CLIENT_KEY`/`TOSS_PAYMENTS_SECRET_KEY`(향후). `NEXT_PUBLIC_*`은 변경 시 재배포 필수.
+**주요 env**: `DATABASE_URL`/`DIRECT_URL`, `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `NEXT_PUBLIC_KAKAO_JS_KEY`, `NEXT_PUBLIC_TOSS_CLIENT_KEY`/`TOSS_PAYMENTS_SECRET_KEY`. `NEXT_PUBLIC_*`은 변경 시 재배포 필수.
 
 ---
 
@@ -271,7 +271,7 @@ npm run dev
 | 관심사 | 자기계발 · MBTI · 타로 · 사주 · 힐링 콘텐츠 |
 | 페인 포인트 | "사주는 뻔해, 새로운 거 없을까?" / "자미두수 볼 수 있는 사이트가 없어" |
 | 핵심 동기 | 새로운 자아탐색 도구 · SNS 공유 콘텐츠 |
-| 결제 성향 | 890원 소액 충동 결제 · 무통장입금/카카오페이 선호 |
+| 결제 성향 | 890원 소액 충동 결제 · 토스(카드·간편결제) 선호 |
 | 사용 패턴 | 모바일 위주 · 인스타·틱톡·숏츠 |
 
 **선택 이유**: 에브리타임·인스타 릴스로 비용 0원 접근, 공유 카드 바이럴 자연 발생. 명반 생성·AI 해석·공유 카드가 완성돼 즉시 서비스 가능. 890원 소액 충동 결제로 수익화 검증에 적합.

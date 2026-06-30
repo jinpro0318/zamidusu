@@ -3,7 +3,6 @@
 import { Result } from "@/components/ziwei/screens/Result";
 import { useNav } from "@/components/ziwei/use-nav";
 import type { Area } from "@/lib/ziwei-types";
-import type { BankInfo } from "@/components/ziwei/sheets/DepositSheet";
 
 export function ResultClient({
   areas,
@@ -12,7 +11,6 @@ export function ResultClient({
   chartId,
   loggedIn,
   isPaid,
-  bank,
   timeUncertain,
 }: {
   areas: Area[];
@@ -21,7 +19,6 @@ export function ResultClient({
   chartId: string;
   loggedIn: boolean;
   isPaid?: boolean;
-  bank?: BankInfo;
   timeUncertain?: boolean;
 }) {
   const nav = useNav(chartId);
@@ -33,7 +30,6 @@ export function ResultClient({
       birthLabel={birthLabel}
       loggedIn={loggedIn}
       isPaid={isPaid}
-      bank={bank}
       timeUncertain={timeUncertain}
       chartId={chartId}
     />

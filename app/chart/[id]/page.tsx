@@ -33,13 +33,8 @@ export default async function ChartPage({ params }: { params: Promise<{ id: stri
   const areas = toAreas(payload);
   const birthLabel = `${chart.birthYear}.${String(chart.birthMonth).padStart(2, "0")}.${String(chart.birthDay).padStart(2, "0")} · ${chart.birthCalendar === "SOLAR" ? "양력" : "음력"} · ${payload.time} · ${chart.gender === "MALE" ? "男" : "女"}`;
 
-  // 깊은풀이 결제 여부(로그인 시만 조회) + 무통장입금 계좌(서버 env, 하드코딩 금지).
-  const isPaid = loggedIn ? await hasPurchased(userId, chart.id) : false;
-  const bank = {
-    name: process.env.BANK_NAME ?? "",
-    account: process.env.BANK_ACCOUNT ?? "",
-    holder: process.env.BANK_HOLDER ?? "",
-  };
+  // 이 명반의 깊은풀이 결제(PAID) 여부.
+  const isPaid = await hasPurchased(userId, chart.id);
 
   return (
     <ResultClient
@@ -49,7 +44,6 @@ export default async function ChartPage({ params }: { params: Promise<{ id: stri
       chartId={chart.id}
       loggedIn={loggedIn}
       isPaid={isPaid}
-      bank={bank}
       timeUncertain={chart.timeUncertain}
     />
   );

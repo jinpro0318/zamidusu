@@ -7,7 +7,6 @@ import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
-import type { BankInfo } from '@/components/ziwei/sheets/DepositSheet';
 import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
 import { UncertainTimeBadge } from '@/components/ziwei/UncertainTimeBadge';
 import { Toast } from '@/components/ziwei/sheets/Toast';
@@ -28,8 +27,6 @@ interface ResultProps {
   timeUncertain?: boolean;
   /** 이 명반의 깊은풀이 결제(PAID) 여부 */
   isPaid?: boolean;
-  /** 무통장입금 계좌정보(서버 env) */
-  bank?: BankInfo;
   /** 공유 링크 발급에 사용할 명반 id */
   chartId?: string;
 }

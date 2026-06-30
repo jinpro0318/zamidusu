@@ -164,8 +164,7 @@ model AiConversation {
 }
 
 // chart 1개 단위 "12궁 전체 상세풀이" 단건 구매.
-// 1단계: 무통장입금(method=BANK_TRANSFER) + 관리자 수동 입금확인(status PENDING→PAID).
-// 추후 PG 자동결제로 전환 시 method에 "TOSS" 등 추가(스키마 확장만으로 대응).
+// 토스페이먼츠 결제위젯으로 결제 → 승인(/api/purchase/confirm) 성공 시 status=PAID 기록.
 model Purchase {
   id      String @id @default(cuid())
   userId  String
@@ -174,14 +173,14 @@ model Purchase {
   chart   Chart  @relation(fields: [chartId], references: [id], onDelete: Cascade)
 
   amount        Int       @default(890)
-  method        String    @default("BANK_TRANSFER") // "BANK_TRANSFER" | (추후) "TOSS" ...
-  depositorName String? // 입금자명 (무통장입금 대조용)
-  status        String    @default("PENDING") // "PENDING"=입금대기 | "PAID"=입금확인 | "CANCELLED"
-  paidAt        DateTime? // 관리자가 입금확인한 시각
+  method        String    @default("BANK_TRANSFER") // 현재는 "TOSS"로 기록 (기본값은 과거 호환용)
+  depositorName String? // 결제 대조용 — 토스 주문번호(orderId) 기록
+  status        String    @default("PENDING") // "PENDING"=결제대기 | "PAID"=결제완료 | "CANCELLED"
+  paidAt        DateTime? // 결제 확정 시각
   createdAt     DateTime  @default(now())
 
   @@unique([userId, chartId]) // 같은 명반 중복 구매 방지
-  @@index([status, createdAt]) // 관리자 "입금대기" 목록 조회용
+  @@index([status, createdAt]) // 결제 상태별 조회용
 }
 
 // 궁별 "초기 풀이" 캐시 — 동일 (chartId, 궁) 재방문 시 LLM 재호출 없이 즉시 반환.
