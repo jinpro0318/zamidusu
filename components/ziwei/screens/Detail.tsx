@@ -74,7 +74,7 @@ export function Detail({
   const keywords = [...new Set(kw)].slice(0, 5);
 
   // ── 2단: 구조화 AI 본문 ──
-  const initPrompt = `${a.ko}(${a.cn})를 중심으로, 옆에서 상담하듯 대화형으로 풀어주세요. 대괄호 머리글·목록·특수 토큰 없이 자연스러운 문단으로, 도입 공감 → 마음 읽기 질문 → 명반 근거 본문 → 응원 마무리 흐름으로 들려주세요. 이 자리의 별(주성·보조성)과 밝기를 근거로, 제가 실제 일상·관계·일에서 어떻게 느끼고 겪는지를 구체적인 장면과 감정으로 풀어주세요.`;
+  const initPrompt = `${a.ko}(${a.cn}) 풀이를 400~500자 이내로 요약해 주세요. 인삿말 없이 바로 핵심 포인트부터 시작하고, 이 자리의 별(주성·보조성)과 밝기를 근거로 제가 실제 일상·관계·일에서 어떻게 느끼고 겪는지를 간결하게 짚어주세요. 마지막에 개운 팁 한 줄로 완결해 주세요.`;
 
   const { messages, status, append, error, reload } = useChat({
     api: '/api/ai/chat',
@@ -264,8 +264,18 @@ export function Detail({
           {/* 성공: 500자 미리보기 + 결제 게이트 */}
           {hasAnswer && (() => {
             const LIMIT = 500;
-            const preview = cleanMd(mainAnswer).slice(0, LIMIT);
-            const hasMore = cleanMd(mainAnswer).length > LIMIT;
+            const cleaned = cleanMd(mainAnswer);
+            // 문장 끝(. ! ?) 기준으로 자르되, 없으면 hard-cut
+            const preview = (() => {
+              if (cleaned.length <= LIMIT) return cleaned;
+              const sub = cleaned.slice(0, LIMIT);
+              let cut = -1;
+              const re = /[.!?]/g;
+              let m: RegExpExecArray | null;
+              while ((m = re.exec(sub)) !== null) cut = m.index;
+              return cut > LIMIT * 0.5 ? sub.slice(0, cut + 1) : sub;
+            })();
+            const hasMore = cleaned.length > LIMIT;
             return (
               <div style={{ position: 'relative' }}>
                 <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '16px 18px', fontFamily: SANS, fontSize: 14, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
