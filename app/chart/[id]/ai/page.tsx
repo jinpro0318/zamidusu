@@ -12,7 +12,7 @@ export default async function ChartAiPage({ params }: { params: Promise<{ id: st
   const session = await auth();
   // 프리미엄(회원 전용) — 게스트는 로그인 후 이 페이지로 복귀
   if (!session?.user) {
-    redirect(`/sign-in?next=${encodeURIComponent(`/chart/${id}/ai`)}`);
+    redirect(`/chart/${id}`);
   }
   const userId = (session.user as any).id as string;
 

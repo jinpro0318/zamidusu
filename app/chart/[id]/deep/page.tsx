@@ -10,7 +10,7 @@ export default async function DeepPage({ params }: { params: Promise<{ id: strin
   // 테스트 기간: 로그인 회원이면 결제 없이 체험 가능(정식 전환 시 hasPurchased 게이트 복구).
   const session = await auth();
   if (!session?.user) {
-    redirect(`/sign-in?next=${encodeURIComponent(`/chart/${id}/deep`)}`);
+    redirect(`/chart/${id}`);
   }
   const userId = (session.user as any).id as string;
 

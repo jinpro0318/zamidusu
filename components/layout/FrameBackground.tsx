@@ -11,7 +11,6 @@ import { usePathname } from 'next/navigation';
 export function FrameBackground() {
   const p = usePathname() || '';
   const light =
-    p.startsWith('/mypage') ||
     /^\/chart\/[^/]+$/.test(p) || // 결과(/chart/[id]) + /chart/new
     /^\/chart\/[^/]+\/(palace|deep|timeline|monthly)/.test(p); // 상세/전체풀이/타임라인/월간
   if (!light) return null;

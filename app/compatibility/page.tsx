@@ -18,7 +18,7 @@ export default async function CompatibilityPage({
   // 회원 전용 — 게스트는 로그인 후 이 페이지(출처 포함)로 복귀
   if (!session?.user) {
     const next = fromChartId ? `/compatibility?from=${fromChartId}` : "/compatibility";
-    redirect(`/sign-in?next=${encodeURIComponent(next)}`);
+    redirect('/chart/new');
   }
   const userId = (session.user as any).id as string;
 

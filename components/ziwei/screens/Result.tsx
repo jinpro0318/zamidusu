@@ -7,8 +7,7 @@ import { Z, SERIF, SANS } from '@/theme/tokens';
 import { AreaIcon, Brightness, StarField } from '@/components/ziwei/atoms';
 import { Plate } from '@/components/ziwei/Plate';
 import { ShareSheet } from '@/components/ziwei/sheets/ShareSheet';
-import { LoginGate } from '@/components/ziwei/sheets/LoginGate';
-import { DepositSheet, type BankInfo } from '@/components/ziwei/sheets/DepositSheet';
+import type { BankInfo } from '@/components/ziwei/sheets/DepositSheet';
 import { PremiumSection } from '@/components/ziwei/premium/PremiumSection';
 import { UncertainTimeBadge } from '@/components/ziwei/UncertainTimeBadge';
 import { Toast } from '@/components/ziwei/sheets/Toast';
@@ -16,7 +15,8 @@ import { useToast } from '@/hooks/useToast';
 import { AREAS as DEFAULT_AREAS } from '@/data/areas';
 import { AREA_INFO } from '@/data/areaInfo';
 import { annotateStar, annotatePalace } from '@/lib/glossary';
-import type { Area, GateState, Nav } from '@/lib/ziwei-types';
+import type { Area, Nav } from '@/lib/ziwei-types';
+import { isTossEnabled, itemFromHref } from '@/lib/toss';
 
 interface ResultProps {
   nav: Nav;
@@ -34,51 +34,26 @@ interface ResultProps {
   chartId?: string;
 }
 
-export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, timeUncertain = false, isPaid = false, bank, chartId }: ResultProps) {
+export function Result({ nav, areas, subjectName, birthLabel, timeUncertain = false, chartId }: ResultProps) {
   const router = useRouter();
   const allAreas = areas && areas.length ? areas : DEFAULT_AREAS;
-  // 권한: 로그인 = 상세풀이(궁별) 접근. 깊은풀이는 결제(isPaid)로 별도 판정.
-  const canAccessPremium = loggedIn;
   const [showAll, setShowAll] = useState(false);
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
   const [plateSel, setPlateSel] = useState('命宮');
-  const [gate, setGate] = useState<GateState | null>(null);
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
-  // 프리미엄 4기능 결제 팝업(체험): 결제 확인 누르면 해당 기능으로 이동.
-  const [payHref, setPayHref] = useState<string | null>(null);
 
-  // 프리미엄 카드 → 회원이면 결제 팝업(체험), 비회원이면 로그인 유도.
+  // 유료 풀이 선택 → 토스 결제 페이지로 이동.
+  //   토스 키가 없으면(승인 대기) 결제 화면 대신 준비 중 안내만 노출.
   const handlePremiumSelect = (href: string) => {
-    if (!canAccessPremium) {
-      openJoinGate(href);
+    if (!chartId || !isTossEnabled) {
+      showToast('유료 풀이는 결제 준비 중이에요. 곧 열어드릴게요!');
       return;
     }
-    setPayHref(href);
+    router.push(`/chart/${chartId}/pay?item=${itemFromHref(href)}`);
   };
 
-  // 프리미엄 진입 게이트 → 하단 바텀시트(LoginGate)로 "가입하면 열려요" + 로그인/가입.
-  // next: 로그인 후 복귀할 내부 경로.
-  const openJoinGate = (next?: string) => {
-    setPendingHref(next ?? null);
-    setGate({ reason: 'detail', onSuccess: null });
-  };
-
-  // 카드/버튼 활성화: 접근 권한 있으면 해당 경로로, 없으면 게이트(복귀 경로 포함).
-  const activate = (href: string) => {
-    if (canAccessPremium) router.push(href);
-    else openJoinGate(href);
-  };
-
-  // 궁 상세(AI 풀이) 페이지로 직접 이동. (이전엔 요약 팝업을 거쳤으나 제거)
-  // 회원 → /chart/[id]/palace/[key] 로 바로, 비회원 → 가입 게이트(복귀 경로 포함).
-  const openPalace = (key: string) => activate(nav.hrefFor('detail', { key }));
-
-  // 비회원이 공유를 누르면 공유 시트 대신 가입 모달(게이트)로 유도. 로그인 후 이 명반으로 복귀.
-  const openShareGate = () => {
-    setPendingHref(nav.hrefFor('result'));
-    setGate({ reason: 'share', onSuccess: null });
-  };
+  // 궁 상세(AI 풀이) 페이지로 바로 이동.
+  const openPalace = (key: string) => router.push(nav.hrefFor('detail', { key }));
 
   const sixKeys = ['命宮', '夫妻宮', '財帛宮', '官祿宮', '疾厄宮', '田宅宮'];
   const list = showAll
@@ -132,7 +107,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
             저장
           </button>
           <button
-            onClick={() => (loggedIn ? setShare(true) : openShareGate())}
+            onClick={() => setShare(true)}
             style={{
               fontFamily: SANS, fontSize: 12.5, color: Z.ink, fontWeight: 700,
               border: 'none', background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`,
@@ -146,24 +121,6 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
             </svg>
             공유
           </button>
-          {/* 마이페이지 — 로그인 시에만, 저장 버튼과 동일 톤 */}
-          {loggedIn && (
-            <button
-              onClick={() => router.push('/mypage')}
-              aria-label="마이페이지"
-              style={{
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.08)',
-                borderRadius: 18, padding: '7px 11px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <circle cx="12" cy="8" r="3.4" stroke="#fff" strokeWidth="2" />
-                <path d="M5 20a7 7 0 0 1 14 0" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-          )}
         </div>
 
         {/* 명반 차트 영역 */}
@@ -289,7 +246,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
                 <button
                   type="button"
                   onClick={() => openPalace(a.cn)}
-                  aria-label={`${a.ko} 상세 풀이 보기${loggedIn ? '' : ' · 회원 전용'}`}
+                  aria-label={`${a.ko} 상세 풀이 보기`}
                   className="detail-cta"
                   style={{
                     marginTop: 11, width: '100%', cursor: 'pointer',
@@ -297,17 +254,8 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
                     fontFamily: SANS, fontSize: 13.5, fontWeight: 700, borderRadius: 13, padding: '10px 12px',
                   }}
                 >
-                  {loggedIn ? (
-                    <>
-                      상세 풀이 보기
-                      <span aria-hidden style={{ fontWeight: 800 }}>→</span>
-                    </>
-                  ) : (
-                    <>
-                      <span aria-hidden>🔒</span>
-                      상세 풀이 보기 · 회원 전용
-                    </>
-                  )}
+                  상세 풀이 보기
+                  <span aria-hidden style={{ fontWeight: 800 }}>→</span>
                 </button>
               </div>
             );
@@ -328,7 +276,7 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
 
       {/* ✦ 더 깊이 알아보기 — 테스트 기간: 결제 없이 해당 기능 페이지로 바로 이동. */}
       <PremiumSection
-        loggedIn={canAccessPremium}
+        loggedIn={true}
         chartId={chartId}
         onSelect={handlePremiumSelect}
       />
@@ -340,22 +288,6 @@ export function Result({ nav, areas, subjectName, birthLabel, loggedIn = true, t
         soulStars={allAreas.find((x) => x.cn === '命宮')?.stars}
         chartId={chartId}
         title={subjectName}
-      />
-      <LoginGate
-        gate={gate}
-        onClose={() => setGate(null)}
-        callbackUrl={pendingHref ?? undefined}
-      />
-      {/* 프리미엄 4기능 결제 팝업(체험) — '결제 확인하고 보기' 누르면 해당 기능으로 이동 */}
-      <DepositSheet
-        open={!!payHref}
-        onClose={() => setPayHref(null)}
-        bank={bank ?? { name: '', account: '', holder: '' }}
-        onConfirm={() => {
-          const h = payHref;
-          setPayHref(null);
-          if (h) router.push(h);
-        }}
       />
       <Toast msg={toast} />
     </div>

@@ -150,7 +150,9 @@ export async function POST(req: Request) {
     // 후속 자유질문은 기본값 유지(추론 깊이 보존).
     ...(isInitialReading
       ? {
-          maxTokens: isDeep ? 2600 : isTimeline ? 2400 : 1400, // 깊은풀이·대운흐름은 더 길다
+          // 무료 궁별 상세풀이는 핵심 포인트형(BRIEF_STYLE)이라 짧게 제한해 토큰 절감.
+          // 유료 깊은풀이·대운흐름·월간은 상세하게 유지.
+          maxTokens: isDeep ? 2600 : isTimeline ? 2400 : isMonthly ? 1600 : 700, // 깊은풀이·대운흐름은 더 길다
           providerOptions: {
             google: { thinkingConfig: { thinkingBudget: 0 } },
           },

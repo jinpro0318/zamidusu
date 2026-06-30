@@ -16,7 +16,7 @@ export default async function PalaceDetailPage({
   // 궁별 상세풀이 = 로그인(회원) 전용. 비회원/게스트는 로그인 유도(결제 불필요).
   const session = await auth();
   if (!session?.user) {
-    redirect(`/sign-in?next=${encodeURIComponent(`/chart/${id}/palace/${key}`)}`);
+    redirect(`/chart/${id}`);
   }
   const userId = (session.user as any).id as string;
 

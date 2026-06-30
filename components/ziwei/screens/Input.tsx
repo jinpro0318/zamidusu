@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { PrimaryBtn, Seg } from '@/components/ziwei/atoms';
 import { BackBar, Label, TextInput, TapField, PickerSheet } from '@/components/ziwei/common';
-import { SavedChartsSheet } from '@/components/ziwei/SavedChartsSheet';
 import { SIJIN_LABELS, timeToHour, mapTimeToSijin } from '@/data/sijin';
 
 const UNKNOWN_TIME_LABEL = '모름 / 시간 미상';
@@ -23,10 +22,10 @@ interface PickerCfg {
   set: (v: string) => void;
 }
 
-export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: boolean }) {
+export function Input({ nav }: { nav: Nav }) {
   const router = useRouter();
-  // 로그인 사용자만: 저장한 명반 불러오기 시트
-  const [savedOpen, setSavedOpen] = useState(false);
+  // 개인정보 수집·이용 동의(필수) — 명반은 민감한 개인정보라 작성 전 동의를 받는다.
+  const [agree, setAgree] = useState(false);
   const YEARS: string[] = [];
   for (let y = 2012; y >= 1950; y--) YEARS.push(y + '년');
   const MONTHS: string[] = [];
@@ -85,7 +84,7 @@ export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: bool
 
   const openPicker = (title: string, options: string[], value: string, set: (v: string) => void) =>
     setPicker({ title, options, value, set });
-  const ready = sex && time && !submitting;
+  const ready = sex && time && agree && !submitting;
 
   async function submitChart() {
     if (!ready) return;
@@ -159,36 +158,7 @@ export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: bool
             <div key={i} style={{ flex: 1, height: 4, borderRadius: 3, background: i < 2 ? Z.p600 : Z.line }} />
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-          <h1 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: Z.ink, margin: '0 0 6px' }}>출생정보를 알려주세요</h1>
-          {/* 회원만 노출: 저장한 명반을 시트로 불러오기 (비회원은 기존 화면 그대로) */}
-          {isLoggedIn && (
-            <button
-              type="button"
-              onClick={() => setSavedOpen(true)}
-              aria-label="저장한 내 명반 불러오기"
-              style={{
-                flexShrink: 0,
-                marginTop: 2,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                cursor: 'pointer',
-                fontFamily: SANS,
-                fontSize: 13,
-                fontWeight: 700,
-                color: Z.p600,
-                background: Z.p50,
-                border: `1.5px solid ${Z.p100}`,
-                borderRadius: 18,
-                padding: '7px 13px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              📂 내 명반 불러오기
-            </button>
-          )}
-        </div>
+        <h1 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 700, color: Z.ink, margin: '0 0 6px' }}>출생정보를 알려주세요</h1>
         <p style={{ fontFamily: SANS, fontSize: 14, color: Z.ink2, margin: '0 0 22px' }}>정확할수록 명반이 정밀해져요</p>
       </div>
       <div
@@ -331,8 +301,53 @@ export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: bool
           background: `linear-gradient(to top, ${Z.cream} 72%, transparent)`,
         }}
       >
+        <button
+          type="button"
+          onClick={() => setAgree((v) => !v)}
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
+            width: '100%',
+            marginBottom: 12,
+            padding: 0,
+            cursor: 'pointer',
+            background: 'transparent',
+            border: 'none',
+            textAlign: 'left',
+          }}
+        >
+          <span
+            style={{
+              flexShrink: 0,
+              width: 20,
+              height: 20,
+              marginTop: 1,
+              borderRadius: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: agree ? Z.p600 : Z.white,
+              border: agree ? 'none' : `1.5px solid ${Z.line}`,
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            {agree ? '✓' : ''}
+          </span>
+          <span style={{ fontFamily: SANS, fontSize: 12.5, color: Z.ink2, lineHeight: 1.5 }}>
+            <b style={{ color: Z.ink }}>(필수)</b> 생년월일·태어난 시간·성별 등 개인정보의 수집·이용에 동의합니다. 입력 정보는 명반 계산과 풀이 제공에만 사용돼요.
+          </span>
+        </button>
         <PrimaryBtn onClick={submitChart} style={{ opacity: ready ? 1 : 0.5 }}>
-          {submitting ? '명반 계산 중…' : ready ? '명반 생성하기' : '시간 · 성별을 입력해 주세요'}
+          {submitting
+            ? '명반 계산 중…'
+            : !sex || !time
+              ? '시간 · 성별을 입력해 주세요'
+              : !agree
+                ? '개인정보 동의가 필요해요'
+                : '명반 생성하기'}
         </PrimaryBtn>
       </div>
       <PickerSheet
@@ -343,7 +358,6 @@ export function Input({ nav, isLoggedIn = false }: { nav: Nav; isLoggedIn?: bool
         onPick={(o) => picker?.set(o)}
         onClose={() => setPicker(null)}
       />
-      {isLoggedIn && <SavedChartsSheet open={savedOpen} onClose={() => setSavedOpen(false)} />}
     </div>
   );
 }

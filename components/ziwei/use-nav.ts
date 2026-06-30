@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import type { Nav, NavParams, ScreenKey, GateReason } from "@/lib/ziwei-types";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 // ziwei-app screen key → Next.js route 매핑.
 // `chartId`는 NavParams로 받아 동적 경로에 끼움.

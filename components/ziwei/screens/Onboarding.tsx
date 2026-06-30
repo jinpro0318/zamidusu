@@ -1,12 +1,12 @@
 'use client';
 
 // screens/Onboarding.tsx — entry screen
-import Link from 'next/link';
 import { Z, SERIF, SANS } from '@/theme/tokens';
 import { StarField, PrimaryBtn } from '@/components/ziwei/atoms';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import type { Nav } from '@/lib/ziwei-types';
 
-export function Onboarding({ nav, account }: { nav: Nav; account?: { nickname: string } | null }) {
+export function Onboarding({ nav }: { nav: Nav; account?: { nickname: string } | null }) {
   return (
     <div
       style={{
@@ -94,27 +94,9 @@ export function Onboarding({ nav, account }: { nav: Nav; account?: { nickname: s
           <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13, color: 'rgba(255,255,255,0.66)' }}>
             ✦ 가입 없이 바로 시작 · 결과까지 무료로 확인
           </div>
-          {!account && (
-            <div style={{ textAlign: 'center', fontFamily: SANS, fontSize: 13.5, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>
-              이미 회원이신가요?{' '}
-              <Link
-                href={nav.hrefFor('login')}
-                aria-label="로그인 페이지로 이동"
-                style={{
-                  color: Z.goldBright,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  outlineOffset: 3,
-                  borderRadius: 4,
-                  padding: '2px 4px',
-                }}
-              >
-                로그인
-              </Link>
-            </div>
-          )}
         </div>
       </div>
+      <SiteFooter />
     </div>
   );
 }

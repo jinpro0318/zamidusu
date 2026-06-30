@@ -69,13 +69,13 @@ export function CompatibilityForm({ charts, fromChartId }: { charts: ChartOption
   const [loading, setLoading] = useState(false);
   const [picker, setPicker] = useState<PickerCfg | null>(null);
 
-  // ← HOME: 진입 출처(from) 명반이 있으면 거기로 복귀(예: 내 명반에서 궁합으로 들어온 경우),
-  // 없으면 남자 저장 명반 → 마이페이지 순으로 폴백.
+  // ← HOME: 진입 출처(from) 명반이 있으면 거기로 복귀(예: 명반에서 궁합으로 들어온 경우),
+  // 없으면 남자 저장 명반 → 홈 순으로 폴백.
   const homeHref = fromChartId
     ? `/chart/${fromChartId}`
     : male.mode === "saved" && male.savedId
       ? `/chart/${male.savedId}`
-      : "/mypage";
+      : "/";
 
   // 한 사람 입력 → chartId 확정(저장: 그대로 / 직접: 명반 생성).
   async function resolveChartId(p: Person, gender: "MALE" | "FEMALE", who: string): Promise<string> {

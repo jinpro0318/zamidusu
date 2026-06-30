@@ -10,7 +10,7 @@ export default async function MonthlyPage({ params }: { params: Promise<{ id: st
   // 월간 운세 = 회원 전용. 비회원은 로그인 후 이 페이지로 복귀(결제 게이트는 정식 전환 시 복구).
   const session = await auth();
   if (!session?.user) {
-    redirect(`/sign-in?next=${encodeURIComponent(`/chart/${id}/monthly`)}`);
+    redirect(`/chart/${id}`);
   }
   const userId = (session.user as any).id as string;
 
