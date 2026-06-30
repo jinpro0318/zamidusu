@@ -70,6 +70,7 @@ export function toAreas(payload: AstrolabePayload): Area[] {
       ...(p.adjectiveStars ?? []).filter((s) => NOTABLE_ADJECTIVE.has(s.name)).map((s) => s.name),
     ];
     const leadStar = majorStars[0];
+    const secondStar = majorStars[1];
     const br: BrightnessKey =
       (leadStar?.brightness && BRIGHTNESS_MAP[leadStar.brightness]) || "平";
 
@@ -82,27 +83,88 @@ export function toAreas(payload: AstrolabePayload): Area[] {
       stars,
       subStars,
       br,
-      line: lineFor(meta.cn, leadStar?.name),
+      line: lineFor(meta.cn, leadStar?.name, secondStar?.name),
       sel: p.name.includes("명"),
     };
   });
 }
 
-// 한 줄 요약 — 데모 카피. 추후 AI 또는 별도 lookup으로 강화 가능.
-function lineFor(cn: string, leadStar?: string): string {
-  const base: Record<string, string> = {
-    命宮: "중심을 잡는 리더, 품위가 있어요",
-    兄弟宮: "머리 좋은 친구·형제 복",
-    夫妻宮: "감정이 깊고 헌신적인 인연",
-    子女宮: "독립심 강한 아이·후배 인연",
-    財帛宮: "벌이는 좋아요, 씀씀이만 챙기면 OK",
-    疾厄宮: "기력은 좋되 과로는 주의",
-    遷移宮: "움직일수록 기회가 열려요",
-    奴僕宮: "사람을 끄는 힘, 인맥이 자산",
-    官祿宮: "책임지는 자리에서 빛나는 타입",
-    田宅宮: "안정된 보금자리와 가정 운이 따라요",
-    福德宮: "생각이 깊고 취향이 분명해요",
-    父母宮: "윗사람의 도움을 받는 운",
-  };
-  return base[cn] ?? (leadStar ? `${leadStar} 기운이 강해요` : "");
+// ── 주성별 핵심 문구 (명반에 따라 달라지는 소제목) ──────────────────────────
+// iztro ko-KR 로케일의 한글 별 이름을 키로 사용.
+const STAR_LINE: Record<string, string> = {
+  자미: "중심을 잡는 리더, 품격이 있어요",
+  천기: "영리하고 전략적인 두뇌형",
+  태양: "밝게 비추는 열정적인 활동파",
+  무곡: "결단력 있는 추진형, 실력으로 승부",
+  천동: "온화하고 복이 많은 낙천가",
+  염정: "뜨거운 카리스마, 강한 집중력",
+  천부: "넉넉하고 안정적인 재상 기질",
+  태음: "섬세하고 깊은 감수성의 소유자",
+  탐랑: "매력 넘치고 다재다능한 욕망형",
+  거문: "말이 힘이 되는 분석적 논리파",
+  천상: "균형을 잡는 보좌형, 신뢰가 두터워요",
+  천량: "어른다운 책임감, 사람을 보살펴요",
+  칠살: "독립적이고 강렬한 개척형",
+  파군: "변화를 이끄는 혁신적인 선구자",
+};
+
+// 두 별이 함께 있는 동궁(同宮) 조합 문구 — 자미두수의 실제 동궁 가능 조합만 수록.
+// 키 형식: "주성1+주성2" (순서 무관, 양방향 조회)
+const COMBO_LINE: Record<string, string> = {
+  "자미+천부": "중심을 잡는 리더, 품위가 있어요",
+  "자미+탐랑": "카리스마와 매력을 겸비한 리더형",
+  "자미+천상": "품격 있는 중심, 믿음을 주는 사람",
+  "자미+천량": "품위 있는 어른, 인정받는 리더형",
+  "자미+칠살": "강인하고 결단력 있는 리더",
+  "자미+파군": "변화를 이끄는 강한 카리스마형",
+  "무곡+천부": "든든하고 현실적인 재무형 실력파",
+  "무곡+탐랑": "강한 욕망과 추진력을 갖춘 타입",
+  "무곡+천상": "꼼꼼하고 책임감 있는 실무형",
+  "무곡+칠살": "독자적으로 밀어붙이는 강렬한 실력파",
+  "무곡+파군": "거침없이 변화를 개척하는 돌파형",
+  "염정+천부": "열정과 안정감을 갖춘 카리스마형",
+  "염정+천상": "카리스마 있고 균형 잡힌 보좌형",
+  "염정+탐랑": "넘치는 매력, 뜨거운 도전 정신",
+  "염정+칠살": "독보적인 강인함, 타협 없는 집중력",
+  "염정+파군": "혁명적인 변화를 이끄는 선봉장",
+  "천동+태음": "온화하고 감성적인 복덕형",
+  "태양+태음": "활발함과 섬세함을 함께 가진 균형파",
+  "태양+거문": "말과 행동으로 빛을 발산하는 타입",
+  "천기+태음": "섬세하고 전략적인 감성 지략가",
+  "천기+거문": "날카로운 분석과 말솜씨를 갖춘 타입",
+  "천기+천량": "통찰력 있게 사람을 살피는 전략가",
+};
+
+// 공궁(주성 없음) 폴백 — 궁명별로 해당 자리의 성격에 맞는 중립적 문구.
+const EMPTY_LINE: Record<string, string> = {
+  命宮:  "주변의 영향을 폭넓게 받아들이는 유연함",
+  兄弟宮:"가까운 인연이 다양하게 힘이 돼요",
+  夫妻宮:"인연은 천천히 깊어지는 스타일",
+  子女宮:"새 시작마다 자유롭게 개척해요",
+  財帛宮:"흐름에 맞춰 재물을 유연하게 운용해요",
+  疾厄宮:"몸의 신호를 세심하게 살피면 좋아요",
+  遷移宮:"환경의 변화에 쉽게 적응하는 편",
+  奴僕宮:"다양한 인연과 넓게 어울리는 편",
+  官祿宮:"자리보다 역할로 성과를 만드는 타입",
+  田宅宮:"공간보다 관계가 안정의 원천이에요",
+  福德宮:"취향이 넓고 다양한 것을 즐겨요",
+  父母宮:"윗사람과 유연하게 관계를 맺어요",
+};
+
+// 한 줄 요약 생성 — 실제 명반의 주성 기준으로 결정.
+function lineFor(cn: string, leadStar?: string, secondStar?: string): string {
+  // 1) 두 별 조합
+  if (leadStar && secondStar) {
+    const key = `${leadStar}+${secondStar}`;
+    const revKey = `${secondStar}+${leadStar}`;
+    const combo = COMBO_LINE[key] ?? COMBO_LINE[revKey];
+    if (combo) return combo;
+  }
+  // 2) 주성 단독
+  if (leadStar) {
+    const line = STAR_LINE[leadStar];
+    if (line) return line;
+  }
+  // 3) 공궁 폴백
+  return EMPTY_LINE[cn] ?? "";
 }

@@ -56,8 +56,8 @@ export interface Area {
 }
 
 export interface AreaDetail {
-  /** 한 줄 요약 (15~25자). area.line과 동일 내용 — 모달/상세 헤드라인 */
-  headline: string;
+  /** 한 줄 요약 — 동적(area.line)으로 대체. 정적 override가 필요한 경우만 지정 */
+  headline?: string;
   /** 무료 "간단 풀이" — 주성 기준 성격/강점/특징 한 문단 (80~120자) */
   summary: string;
   /** 회원 전용 "상세 풀이" — 기질→발현→주의→조언 흐름, 2~4문단 (300~500자) */
