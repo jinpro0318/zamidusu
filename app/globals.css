@@ -110,12 +110,12 @@ a:focus-visible, button:focus-visible {
   outline-offset: 2px;
 }
 
-/* 전역 스크롤바 — 배경 #15102a 와 통일 (Windows/Linux 거터까지 같이 어둠) */
-html { scrollbar-width: thin; scrollbar-color: #15102a #15102a; }
-html::-webkit-scrollbar { width: 8px; height: 8px; }
-html::-webkit-scrollbar-track { background: #15102a; }
-html::-webkit-scrollbar-thumb { background: #15102a; }
-html::-webkit-scrollbar-thumb:hover { background: #2c2150; }
+/* 전역 스크롤바 — track 투명, thumb 반투명으로 밝은/어두운 배경 모두 자연스럽게 */
+html { scrollbar-width: thin; scrollbar-color: rgba(120,100,170,0.35) transparent; }
+html::-webkit-scrollbar { width: 5px; height: 5px; }
+html::-webkit-scrollbar-track { background: transparent; }
+html::-webkit-scrollbar-thumb { background: rgba(120,100,170,0.35); border-radius: 99px; }
+html::-webkit-scrollbar-thumb:hover { background: rgba(120,100,170,0.55); }
 
 @media (prefers-reduced-motion: reduce) {
   .animscr { animation: none; }
