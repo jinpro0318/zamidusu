@@ -39,9 +39,6 @@ export function SiteFooter() {
       <div style={{ fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
         고객센터
       </div>
-      <p style={{ fontSize: 11.5, color: muted, lineHeight: 1.6, margin: '0 0 4px' }}>
-        운영시간 {COMPANY.hours}
-      </p>
       <p style={{ fontSize: 11.5, color: muted, lineHeight: 1.6, margin: '0 0 12px' }}>
         전화 상담은 제공하지 않습니다. 1:1 문의 게시판을 이용해주세요.
       </p>
@@ -67,15 +64,6 @@ export function SiteFooter() {
         </div>
         <div>
           사업자등록번호 : {COMPANY.bizNo}
-          <span style={{ color: faint }}> | </span>
-          <a
-            href={COMPANY.bizCheckUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'underline', textUnderlineOffset: 2 }}
-          >
-            사업자정보 확인
-          </a>
         </div>
         <div>통신판매업 신고번호 : {COMPANY.mailOrderNo}</div>
         <div>주소 : {COMPANY.address}</div>

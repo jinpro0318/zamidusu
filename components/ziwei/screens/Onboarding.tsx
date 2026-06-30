@@ -86,7 +86,7 @@ export function Onboarding({ nav }: { nav: Nav; account?: { nickname: string } |
             </span>
           ))}
         </div>
-        <div style={{ flex: 1 }} />
+        <div style={{ height: 40 }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
           <PrimaryBtn gold onClick={() => nav.go('input')}>
             내 명반 만들기
