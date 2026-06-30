@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getGuestUserId } from "@/lib/guest";
 import { toAreas } from "@/lib/iztro/to-areas";
 import { DetailClient } from "./client";
 import type { AstrolabePayload } from "@/lib/iztro/types";
@@ -13,12 +14,11 @@ export default async function PalaceDetailPage({
   params: Promise<{ id: string; key: string }>;
 }) {
   const { id, key } = await params;
-  // 궁별 상세풀이 = 로그인(회원) 전용. 비회원/게스트는 로그인 유도(결제 불필요).
   const session = await auth();
-  if (!session?.user) {
-    redirect(`/chart/${id}`);
-  }
-  const userId = (session.user as any).id as string;
+  const userId = session?.user
+    ? ((session.user as any).id as string)
+    : await getGuestUserId();
+  if (!userId) redirect(`/chart/${id}`);
 
   const chart = await db.chart.findFirst({ where: { id, userId } });
   if (!chart) notFound();

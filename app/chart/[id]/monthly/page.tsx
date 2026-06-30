@@ -1,18 +1,18 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getGuestUserId } from "@/lib/guest";
 import { MonthlyClient } from "./client";
 
 export const metadata = { title: "월간 운세" };
 
 export default async function MonthlyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  // 월간 운세 = 회원 전용. 비회원은 로그인 후 이 페이지로 복귀(결제 게이트는 정식 전환 시 복구).
   const session = await auth();
-  if (!session?.user) {
-    redirect(`/chart/${id}`);
-  }
-  const userId = (session.user as any).id as string;
+  const userId = session?.user
+    ? ((session.user as any).id as string)
+    : await getGuestUserId();
+  if (!userId) redirect(`/chart/${id}`);
 
   const chart = await db.chart.findFirst({ where: { id, userId } });
   if (!chart) notFound();
