@@ -488,7 +488,7 @@ export function Detail({
               ))}
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 18 }}>
-              <span style={{ fontFamily: SANS, fontSize: 26, fontWeight: 800, color: Z.ink }}>890원</span>
+              <span style={{ fontFamily: SANS, fontSize: 26, fontWeight: 800, color: Z.ink }}>990원</span>
               <span style={{ fontFamily: SANS, fontSize: 13, color: Z.ink3 }}>/ 단건 구매</span>
             </div>
             <button

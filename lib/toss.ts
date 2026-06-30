@@ -4,7 +4,7 @@
 //   - 실제 승인(secretKey 사용) 호출은 서버 라우트(app/api/purchase/confirm)에서 직접 수행한다.
 
 // 깊은풀이 단건 가격(원). Purchase.amount 기본값과 일치.
-export const DEEP_PRICE = 890;
+export const DEEP_PRICE = 990;
 
 // 브라우저 결제위젯 초기화에 쓰는 공개 클라이언트 키.
 // 키가 없으면(승인 대기 등) 결제 플로우를 노출하지 않는다.

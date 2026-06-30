@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getGuestUserId } from "@/lib/guest";
 import { DEEP_PRICE, parseOrderId, PREMIUM_ITEMS } from "@/lib/toss";
@@ -29,8 +30,11 @@ export async function GET(req: Request) {
   // 금액 위·변조 방지 — 서버가 기대하는 가격과 일치해야 함.
   if (amount !== DEEP_PRICE) return fail(chartId);
 
-  // 결제 주체(게스트) 식별 및 본인 명반 확인.
-  const userId = await getGuestUserId();
+  // 결제 주체 식별 — 로그인 회원은 세션 ID, 비로그인은 게스트 쿠키.
+  const session = await auth();
+  const userId = session?.user
+    ? ((session.user as any).id as string)
+    : await getGuestUserId();
   if (!userId) return fail(chartId);
 
   const chart = await db.chart.findFirst({

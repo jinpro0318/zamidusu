@@ -172,7 +172,7 @@ model Purchase {
   chartId String
   chart   Chart  @relation(fields: [chartId], references: [id], onDelete: Cascade)
 
-  amount        Int       @default(890)
+  amount        Int       @default(990)
   method        String    @default("BANK_TRANSFER") // 현재는 "TOSS"로 기록 (기본값은 과거 호환용)
   depositorName String? // 결제 대조용 — 토스 주문번호(orderId) 기록
   status        String    @default("PENDING") // "PENDING"=결제대기 | "PAID"=결제완료 | "CANCELLED"
