@@ -2,6 +2,7 @@
 
 // components/layout/SiteFooter.tsx — 전자상거래 사업자 정보 푸터.
 // 사업자등록증(간이과세자) 기재사항 기준. 값 수정은 아래 COMPANY 상수만 고치면 된다.
+import Link from 'next/link';
 import { SANS } from '@/theme/tokens';
 
 // ── 회사 정보(사업자등록증 기준) ─────────────────────────────────
@@ -49,6 +50,33 @@ export function SiteFooter() {
         >
           1:1 문의하기
         </button>
+        <Link
+          href="/login"
+          style={{
+            fontFamily: SANS, fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.85)',
+            border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)',
+            borderRadius: 8, padding: '4px 12px', textDecoration: 'none',
+          }}
+        >
+          로그인
+        </Link>
+      </div>
+
+      {/* 정보 링크 */}
+      <div style={{ display: 'flex', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
+        {[
+          { href: '/info/about', label: '회사소개' },
+          { href: '/info/terms', label: '이용약관' },
+          { href: '/info/privacy', label: '개인정보 처리방침' },
+        ].map(({ href, label }) => (
+          <Link
+            key={href}
+            href={href}
+            style={{ fontFamily: SANS, fontSize: 12, color: 'rgba(255,255,255,0.55)', textDecoration: 'none' }}
+          >
+            {label}
+          </Link>
+        ))}
       </div>
 
       {/* 사업자 정보 */}

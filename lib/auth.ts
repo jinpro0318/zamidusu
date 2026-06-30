@@ -1,11 +1,8 @@
-// 회원가입/로그인 제거 — 게스트(zmds_guest 쿠키) 신원만 사용한다.
-// 사주아이처럼 가입 없이 바로 쓰는 경험. 기존 페이지/라우트의 `auth()` 호출부
-// 호환을 위해 동일 시그니처를 유지하되, 게스트 쿠키가 있으면 게스트 세션을,
-// 없으면 null을 반환한다.
-//
-// 읽기 전용이라 Server Component에서도 안전(쿠키 set 하지 않음).
-// 게스트 쿠키 발급은 명반 생성 시 getOrCreateGuestUserId가 담당한다.
+// 인증 유틸 — Supabase Auth 세션 우선, 없으면 게스트 쿠키로 폴백.
+// Supabase OAuth(카카오 등) 로그인 시 실제 user.id를 반환하고,
+// 비로그인 게스트는 zmds_guest 쿠키 기반 ID를 반환한다.
 
+import { createClient } from "@/lib/supabase/server";
 import { getGuestUserId } from "@/lib/guest";
 
 export interface AuthSession {
@@ -18,6 +15,30 @@ export interface AuthSession {
 }
 
 export async function auth(): Promise<AuthSession | null> {
+  // 1) Supabase 세션 확인
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      return {
+        user: {
+          id: user.id,
+          email: user.email ?? null,
+          name:
+            user.user_metadata?.full_name ??
+            user.user_metadata?.name ??
+            null,
+          image: user.user_metadata?.avatar_url ?? null,
+        },
+      };
+    }
+  } catch {
+    // 서버 컴포넌트 read-only context 등에서 쿠키 set 실패해도 무시
+  }
+
+  // 2) 게스트 쿠키 폴백
   const id = await getGuestUserId();
   if (!id) return null;
   return { user: { id, email: null, name: "게스트", image: null } };
