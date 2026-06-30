@@ -11,29 +11,26 @@ export const DEEP_PRICE = 890;
 export const TOSS_CLIENT_KEY = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? "";
 export const isTossEnabled = TOSS_CLIENT_KEY.length > 0;
 
-// 유료 기능 정의 — PremiumSection.premiumFeatures와 1:1 대응.
-export type PremiumItemKey = "full" | "timeline" | "compat" | "alert";
+// 유료 기능 정의 — 궁합·인연 분석 + 재회운 두 가지만 운영.
+export type PremiumItemKey = "compat" | "reunion";
 
 export const PREMIUM_ITEMS: Record<
   PremiumItemKey,
   { orderName: string; path: (chartId: string) => string }
 > = {
-  full: { orderName: "자미두수 · 12궁 전체 풀이", path: (id) => `/chart/${id}/deep` },
-  timeline: { orderName: "자미두수 · 대운·세운 타임라인", path: (id) => `/chart/${id}/timeline` },
-  compat: { orderName: "자미두수 · 궁합·인연 분석", path: (id) => `/compatibility?from=${id}` },
-  alert: { orderName: "자미두수 · 월간 운세", path: (id) => `/chart/${id}/monthly` },
+  compat:  { orderName: "자미두수 · 궁합·인연 분석", path: (id) => `/compatibility?from=${id}` },
+  reunion: { orderName: "자미두수 · 재회운 분석",     path: (id) => `/chart/${id}/reunion` },
 };
 
 export function isPremiumItemKey(v: string | null | undefined): v is PremiumItemKey {
-  return v === "full" || v === "timeline" || v === "compat" || v === "alert";
+  return v === "compat" || v === "reunion";
 }
 
 // PremiumSection이 넘기는 내부 href → 유료 기능 키 역매핑.
 export function itemFromHref(href: string): PremiumItemKey {
-  if (href.includes("/timeline")) return "timeline";
   if (href.includes("/compatibility")) return "compat";
-  if (href.includes("/monthly")) return "alert";
-  return "full"; // /chart/{id}/deep 및 기타
+  if (href.includes("/reunion")) return "reunion";
+  return "reunion";
 }
 
 // 결제 주문번호 생성/파싱.
@@ -48,7 +45,7 @@ export function buildOrderId(chartId: string, itemKey: PremiumItemKey): string {
 export function parseOrderId(
   orderId: string,
 ): { chartId: string; itemKey: PremiumItemKey } | null {
-  const m = /^zmds-([A-Za-z0-9]+)-(full|timeline|compat|alert)-/.exec(orderId);
+  const m = /^zmds-([A-Za-z0-9]+)-(compat|reunion)-/.exec(orderId);
   if (!m) return null;
   return { chartId: m[1], itemKey: m[2] as PremiumItemKey };
 }

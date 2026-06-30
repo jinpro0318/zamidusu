@@ -59,6 +59,7 @@ export function Detail({
 
   const [share, setShare] = useState(false);
   const [toast, showToast] = useToast();
+  const [payModal, setPayModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const triggered = useRef(false);
 
@@ -75,7 +76,7 @@ export function Detail({
   // ── 2단: 구조화 AI 본문 ──
   const initPrompt = `${a.ko}(${a.cn})를 중심으로, 옆에서 상담하듯 대화형으로 풀어주세요. 대괄호 머리글·목록·특수 토큰 없이 자연스러운 문단으로, 도입 공감 → 마음 읽기 질문 → 명반 근거 본문 → 응원 마무리 흐름으로 들려주세요. 이 자리의 별(주성·보조성)과 밝기를 근거로, 제가 실제 일상·관계·일에서 어떻게 느끼고 겪는지를 구체적인 장면과 감정으로 풀어주세요.`;
 
-  const { messages, input, handleInputChange, handleSubmit, status, append, error, reload } = useChat({
+  const { messages, status, append, error, reload } = useChat({
     api: '/api/ai/chat',
     body: { chartId, palaceKey: key },
     onError: (e) => console.error('[Detail AI] 풀이 호출 실패', { palaceKey: key, chartId, error: e }),
@@ -124,8 +125,8 @@ export function Detail({
   const firstAssistantIdx = visibleMessages.findIndex((m) => m.role === 'assistant');
   const followUps = firstAssistantIdx >= 0 ? visibleMessages.slice(firstAssistantIdx + 1) : [];
 
-  // ── 4단(입력): 추천 질문 칩 — 이 궁 주제의 1인칭 질문 3개(올해 흐름 중심) ──
-  const suggested = [...new Set(QUESTIONS[key]?.map((q) => q.q).slice(0, 3) ?? ['올해 제 흐름이 궁금해요'])];
+  // ── 4단(입력): 추천 질문 칩 — 이 궁 주제의 1인칭 질문 4개(올해 흐름 중심) ──
+  const suggested = [...new Set(QUESTIONS[key]?.map((q) => q.q).slice(0, 4) ?? ['올해 제 흐름이 궁금해요'])];
   const askSuggested = (q: string) => {
     if (isLoading) return;
     append({ role: 'user', content: q });
@@ -260,26 +261,46 @@ export function Detail({
           {/* 상단 안내 범례 — 마킹 또는 본문에 한자 용어(궁·별·개념)가 있으면 표시 */}
           {hasAnswer && (Object.keys(glossary).length > 0 || hasHanjaTerms(cleanMd(mainAnswer))) && <TermLegend />}
 
-          {/* 성공: 섹션 카드 (마커 파싱 실패 시 통짜 폴백) */}
-          {hasAnswer && sections && sections.map((sec, i) => (
-            <div
-              key={`${sec.title}-${i}`}
-              style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '14px 16px' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: `linear-gradient(180deg,${Z.goldBright},${Z.gold})`, display: 'inline-block' }} />
-                <span style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: Z.ink }}>{sec.title}</span>
+          {/* 성공: 500자 미리보기 + 결제 게이트 */}
+          {hasAnswer && (() => {
+            const LIMIT = 500;
+            const preview = cleanMd(mainAnswer).slice(0, LIMIT);
+            const hasMore = cleanMd(mainAnswer).length > LIMIT;
+            return (
+              <div style={{ position: 'relative' }}>
+                <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '16px 18px', fontFamily: SANS, fontSize: 14, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
+                  <AiText text={preview} glossary={glossary} />
+                  {hasMore && (
+                    <span style={{ color: Z.p500, fontWeight: 600 }}> …</span>
+                  )}
+                </div>
+                {hasMore && (
+                  <div style={{
+                    position: 'relative',
+                    background: `linear-gradient(to bottom, transparent, ${Z.cream} 70%)`,
+                    borderRadius: '0 0 16px 16px',
+                    padding: '32px 18px 18px',
+                    marginTop: -40,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                  }}>
+                    <button
+                      onClick={() => setPayModal(true)}
+                      style={{
+                        width: '100%', cursor: 'pointer',
+                        fontFamily: SANS, fontSize: 14, fontWeight: 700, color: '#fff',
+                        border: 'none', borderRadius: 13, padding: '13px 16px',
+                        background: `linear-gradient(180deg,${Z.p500},${Z.p700})`,
+                        boxShadow: '0 4px 14px rgba(94,71,160,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      }}
+                    >
+                      🔓 더 상세한 풀이 보기
+                    </button>
+                  </div>
+                )}
               </div>
-              <div style={{ fontFamily: SANS, fontSize: 14, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-                <AiText text={sec.body} glossary={glossary} />
-              </div>
-            </div>
-          ))}
-          {hasAnswer && !sections && (
-            <div style={{ background: Z.white, border: `1px solid ${Z.line}`, borderRadius: 16, padding: '16px 18px', fontFamily: SANS, fontSize: 14.5, color: Z.ink, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-              <AiText text={cleanMd(mainAnswer)} glossary={glossary} />
-            </div>
-          )}
+            );
+          })()}
 
           {/* 로딩 */}
           {isLoading && !hasAnswer && (
@@ -399,7 +420,7 @@ export function Detail({
         }
       `}</style>
 
-      {/* ── 4단: 추천 질문 칩 + 채팅 입력 (sticky) ── */}
+      {/* ── 4단: 추천 질문 칩 (sticky) ── */}
       <div
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -407,7 +428,7 @@ export function Detail({
           background: `linear-gradient(to top, ${Z.cream} 82%, transparent)`,
         }}
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '0 16px 9px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '0 16px 4px' }}>
           {suggested.map((q) => (
             <button
               key={q}
@@ -427,32 +448,64 @@ export function Detail({
             </button>
           ))}
         </div>
-        <form onSubmit={handleSubmit} style={{ padding: '0 16px' }}>
-          <div style={{ display: 'flex', gap: 9, alignItems: 'center', background: Z.white, border: `1.5px solid ${Z.p100}`, borderRadius: 18, padding: '9px 9px 9px 16px', boxShadow: '0 4px 16px rgba(36,26,61,0.08)' }}>
-            <input
-              value={input}
-              onChange={handleInputChange}
-              placeholder="더 궁금한 점을 물어보세요…"
-              disabled={isLoading}
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: SANS, fontSize: 14, color: Z.ink }}
-            />
+      </div>
+
+      {/* ── 결제 팔업 모달 ── */}
+      {payModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(20,14,35,0.72)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          onClick={() => setPayModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: 480,
+              background: Z.cream, borderRadius: '22px 22px 0 0',
+              padding: 'calc(20px + env(safe-area-inset-bottom)) 22px calc(28px + env(safe-area-inset-bottom))',
+              boxShadow: '0 -8px 40px rgba(0,0,0,0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: Z.p600, marginBottom: 4 }}>🔓 유료 서비스</div>
+                <div style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 800, color: Z.ink }}>더 깊은 AI 풀이</div>
+              </div>
+              <button onClick={() => setPayModal(false)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 5l14 14M19 5L5 19" stroke={Z.ink3} strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+              {[
+                '✨  12궁을 관통하는 종합 AI 풀이',
+                '🌙  재회운 분석 — 헤어진 인연과의 재회 가능성과 시기',
+                '💞  궁합·인연 분석 — 명반으로 비교하는 상대별 영상',
+              ].map((txt) => (
+                <div key={txt} style={{ fontFamily: SANS, fontSize: 13.5, color: Z.ink2, display: 'flex', gap: 6 }}>
+                  {txt}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 18 }}>
+              <span style={{ fontFamily: SANS, fontSize: 26, fontWeight: 800, color: Z.ink }}>890원</span>
+              <span style={{ fontFamily: SANS, fontSize: 13, color: Z.ink3 }}>/ 단건 구매</span>
+            </div>
             <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
+              onClick={() => { setPayModal(false); if (chartId) window.location.href = `/chart/${chartId}/pay?item=reunion`; }}
               style={{
-                width: 38, height: 38, borderRadius: '50%', border: 'none', cursor: isLoading || !input.trim() ? 'default' : 'pointer',
-                background: isLoading || !input.trim() ? Z.line : `linear-gradient(180deg,${Z.p500},${Z.p700})`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                transition: 'background 0.2s',
+                width: '100%', cursor: 'pointer',
+                fontFamily: SANS, fontSize: 16, fontWeight: 700, color: '#fff',
+                border: 'none', borderRadius: 16, padding: '16px',
+                background: `linear-gradient(180deg,${Z.p500},${Z.p700})`,
+                boxShadow: '0 4px 16px rgba(94,71,160,0.35)',
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24">
-                <path d="M5 12h14M13 6l6 6-6 6" stroke={isLoading || !input.trim() ? Z.ink3 : '#fff'} strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              결제하기
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+      )}
 
       <ShareSheet
         open={share}

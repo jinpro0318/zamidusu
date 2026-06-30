@@ -57,6 +57,7 @@ export async function POST(req: Request) {
   const isDeep = mode === "deep";
   const isTimeline = mode === "timeline";
   const isMonthly = mode === "monthly";
+  const isReunion = mode === "reunion";
 
   const modelVersion = modelIdFor(ent.plan);
 
@@ -66,8 +67,8 @@ export async function POST(req: Request) {
   const monthlySection = `monthly-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   // 깊은풀이·대운흐름·월간운세는 DeepReading(section)에 캐시, 궁별은 PalaceReading.
-  const usesDeepCache = isDeep || isTimeline || isMonthly;
-  const deepSection = isTimeline ? TIMELINE_SECTION : isMonthly ? monthlySection : DEEP_SECTION;
+  const usesDeepCache = isDeep || isTimeline || isMonthly || isReunion;
+  const deepSection = isTimeline ? TIMELINE_SECTION : isMonthly ? monthlySection : isReunion ? "reunion" : DEEP_SECTION;
 
   // "초기 풀이" 여부 — 궁별/깊은풀이/대운흐름이 고정 initPrompt 1회로 트리거(messages 1개).
   // 후속 자유질문은 messages가 더 길다. 캐시·thinking-off·maxTokens는 초기 풀이에만 적용.
@@ -124,7 +125,7 @@ export async function POST(req: Request) {
           monthLabel,
           age,
         })
-    : isDeep
+    : isDeep || isReunion
       ? buildDeepReadingPrompt({
           payload,
           subjectName: chart.subjectName,
@@ -152,7 +153,7 @@ export async function POST(req: Request) {
       ? {
           // 무료 궁별 상세풀이는 핵심 포인트형(BRIEF_STYLE)이라 짧게 제한해 토큰 절감.
           // 유료 깊은풀이·대운흐름·월간은 상세하게 유지.
-          maxTokens: isDeep ? 2600 : isTimeline ? 2400 : isMonthly ? 1600 : 700, // 깊은풀이·대운흐름은 더 길다
+          maxTokens: isDeep ? 2600 : isTimeline ? 2400 : isMonthly ? 1600 : isReunion ? 2000 : 700, // 깊은풀이·대운흐름은 더 길다
           providerOptions: {
             google: { thinkingConfig: { thinkingBudget: 0 } },
           },
