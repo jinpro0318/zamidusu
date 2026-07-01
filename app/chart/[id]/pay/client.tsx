@@ -1,7 +1,8 @@
 "use client";
 
 // app/chart/[id]/pay/client.tsx
-// 토스페이먼츠 결제위젯(v2) 렌더 + 결제 요청.
+// 토스페이먼츠 결제창(v2, API 개별연동) 결제 요청.
+//   - 결제위젯(widgets)이 아닌 결제창(payment) 방식 → API 개별연동 키(test_ck_/test_sk_)로 동작.
 //   - customerKey: ANONYMOUS (비회원 게스트 결제)
 //   - 결제 완료 → successUrl(/api/purchase/confirm)에서 서버가 최종 승인.
 import { useEffect, useRef, useState } from "react";
@@ -10,7 +11,7 @@ import { ANONYMOUS, loadTossPayments } from "@tosspayments/tosspayments-sdk";
 import { Z, SANS, SERIF } from "@/theme/tokens";
 import { buildOrderId, type PremiumItemKey } from "@/lib/toss";
 
-type Widgets = Awaited<ReturnType<Awaited<ReturnType<typeof loadTossPayments>>["widgets"]>>;
+type Payment = ReturnType<Awaited<ReturnType<typeof loadTossPayments>>["payment"]>;
 
 export function PayClient({
   chartId,
@@ -28,7 +29,7 @@ export function PayClient({
   customerName: string;
 }) {
   const router = useRouter();
-  const widgetsRef = useRef<Widgets | null>(null);
+  const paymentRef = useRef<Payment | null>(null);
   const [ready, setReady] = useState(false);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,38 +39,41 @@ export function PayClient({
     (async () => {
       try {
         const toss = await loadTossPayments(clientKey);
-        const widgets = toss.widgets({ customerKey: ANONYMOUS });
-        await widgets.setAmount({ currency: "KRW", value: amount });
-        await Promise.all([
-          widgets.renderPaymentMethods({ selector: "#toss-payment-method", variantKey: "DEFAULT" }),
-          widgets.renderAgreement({ selector: "#toss-agreement", variantKey: "AGREEMENT" }),
-        ]);
+        const payment = toss.payment({ customerKey: ANONYMOUS });
         if (cancelled) return;
-        widgetsRef.current = widgets;
+        paymentRef.current = payment;
         setReady(true);
       } catch (e) {
-        console.error("[PayClient] 위젯 초기화 실패", e);
+        console.error("[PayClient] 결제 초기화 실패", e);
         if (!cancelled) setError("결제 화면을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.");
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [clientKey, amount]);
+  }, [clientKey]);
 
   const handlePay = async () => {
-    const widgets = widgetsRef.current;
-    if (!widgets || paying) return;
+    const payment = paymentRef.current;
+    if (!payment || paying) return;
     setPaying(true);
     setError(null);
     try {
       const orderId = buildOrderId(chartId, itemKey);
-      await widgets.requestPayment({
+      await payment.requestPayment({
+        method: "CARD",
+        amount: { currency: "KRW", value: amount },
         orderId,
         orderName,
         successUrl: `${window.location.origin}/api/purchase/confirm`,
         failUrl: `${window.location.origin}/chart/${chartId}?pay=fail`,
         customerName,
+        card: {
+          useEscrow: false,
+          flowMode: "DEFAULT",
+          useCardPoint: false,
+          useAppCardOnly: false,
+        },
       });
     } catch (e) {
       console.error("[PayClient] 결제 요청 실패", e);
@@ -130,8 +134,21 @@ export function PayClient({
         </div>
       </header>
 
-      <div id="toss-payment-method" />
-      <div id="toss-agreement" />
+      <p
+        style={{
+          fontFamily: SANS,
+          fontSize: 12.5,
+          color: Z.ink2,
+          lineHeight: 1.6,
+          marginTop: 14,
+          padding: "13px 15px",
+          background: Z.white,
+          border: `1px solid ${Z.line}`,
+          borderRadius: 14,
+        }}
+      >
+        아래 버튼을 누르면 토스페이먼츠 결제창이 열립니다. 카드 정보를 입력해 결제를 완료해 주세요.
+      </p>
 
       {error && (
         <p style={{ fontFamily: SANS, fontSize: 12.5, color: "#c0392b", marginTop: 12 }}>{error}</p>
